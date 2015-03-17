@@ -1,5 +1,4 @@
-R
+A set of code snippets written in R
 =
 
-Recipes in R
-This is a test of edit from Mac OSX 
+
