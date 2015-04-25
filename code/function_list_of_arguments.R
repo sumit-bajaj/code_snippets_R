@@ -9,8 +9,8 @@ f <- function(a = 1, b = 2) {
 }
 
 
-args = list(1,"dd")
+args = c(1,21)
 
 # execute the function call with list of arguments
-do.call(f, args)
+do.call(f, as.list(args))
 

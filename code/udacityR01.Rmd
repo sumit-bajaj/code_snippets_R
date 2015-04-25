@@ -1,0 +1,234 @@
+---
+title: "Udacity - EDA using R"
+output:
+  html_document:
+    theme: cerulean
+---
+
+Exercises from Udacity's Exploratory Data Analysis in R MOOC
+
+###Set up packages, chart themes etc
+
+```{r Set up packages and environment, message=FALSE, echo=TRUE, warning=FALSE}
+
+#set up chart theme function and load required packages
+source("../r_config/r_env_setup.R")
+
+```
+
+###Reddit dataset
+```{r reddit data, message=FALSE, echo=TRUE, warning=FALSE}
+
+#load the reddit dataset
+reddit_df <- read.csv("../data/reddit.csv", header = T,
+                      stringsAsFactors=TRUE, sep=",",
+                      nrow = 1000)
+
+#Number of rows and columns
+dim(reddit_df)
+
+#List of variables
+names(reddit_df)
+
+#structure of the dataset
+str(reddit_df)
+
+#levels of employment status
+levels(reddit_df$age.range)
+
+#count summary of employement status
+table(reddit_df$age.range)
+
+#barblot for age range
+ggplot(data = reddit_df, aes(x = age.range)) +
+  do.call(chart_theme_min, as.list(chart_format_bar1)) +
+  geom_bar(colour = primary_color[1], fill = primary_color[1], alpha = 0.5, size = 0.25) +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+  geom_hline(yintercept=0, size=0.75, color="grey") 
+#Notice that under18 bucket is at the end which is non-intuitive
+```
+
+####Order a factor variable
+```{r create ordered factor variable age.range, message=FALSE, echo=TRUE, warning=FALSE}
+
+reddit_df$age.range <- ordered(reddit_df$age.range, 
+                             levels=c("Under 18", "18-24", "25-34", "35-44", "45-54", 
+                                      "55-64", "65 or Above" ))
+
+#or alternatively
+reddit_df$age.range <- factor(reddit_df$age.range, 
+                               levels=c("Under 18", "18-24", "25-34", "35-44", "45-54", 
+                                        "55-64", "65 or Above" ),
+                               ordered = TRUE)
+
+#barblot for age range after ordering the factor variable
+ggplot(data = reddit_df, aes(x = age.range)) +
+  do.call(chart_theme_min, as.list(chart_format_bar2)) +
+  geom_bar(colour = primary_color[1], fill = primary_color[1], alpha = 0.5, size = 0.25) +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+  geom_hline(yintercept=0, size=0.75, color="grey") 
+#Notice that under18 bucket is placed as the first bar now
+```
+
+###Pseudo Facebook Dataset
+```{r pseudo facebook dataset, message=FALSE, echo=TRUE, warning=FALSE}
+#read the dataset into R
+fb_df <- read.csv("../data/pseudo_facebook.tsv", header = TRUE,
+                  stringsAsFactors = FALSE, sep="\t")
+
+#take a peek into the fb data
+glimpse(fb_df)
+
+#histogram of b'days
+ggplot(data = fb_df, aes(x = dob_day)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  xlab("Day of birth") + ylab("# of members") +
+  ggtitle("Member Distribution by Day of Birth") +
+  scale_x_discrete(breaks = seq(1,31, 2)) +
+  scale_y_continuous(labels = comma) +
+  geom_hline(yintercept=0, size=0.75, color="grey") +
+  geom_vline(xintercept=1, size=0.75, color = primary_color[1]) +
+  annotate("text", x = 2, y = 6500, 
+           label = 
+             "Abnormally high counts for 1st day of the month\nSeveral member may be selecting the first\ndropdown choice when selecting the day of birth", 
+           size = text.size,color = primary_color[1],
+           hjust = 0) 
+
+
+#faceted by month
+#histogram of b'days
+ggplot(data = fb_df, aes(x = dob_day)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  xlab("Day of birth") + ylab("# of members") +
+  ggtitle("Member Distribution by Day of Birth faceted by Month") +
+  scale_y_continuous(labels = comma) +
+  scale_x_discrete(breaks = seq(1,31, 8)) +
+  geom_hline(yintercept=0, size=0.75, color="grey")+
+  facet_wrap(~dob_month, ncol = 4)
+
+#faceted by month and using density (area under each plot is 1) and free scales
+#histogram of b'days
+ggplot(data = fb_df, aes(x = dob_day)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(aes(y=..density..), colour = "white", 
+                 fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = percent) +
+  xlab("Day of birth") + ylab("# of members") +
+  ggtitle("Member Distribution by Day of Birth faceted by Month") +
+  scale_x_discrete(breaks = seq(1,31, 8)) +
+  geom_hline(yintercept=0, size=0.75, color="grey")+
+  facet_wrap(~dob_month, scales = "free", ncol = 4)
+
+
+#Histogram of friend count (notice that data is concentrated at Zero with few outliers)
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + scale_x_continuous(labels = comma) 
+
+#Friend count after zooming into the previous chart using coord_cartesian
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma) +
+  coord_cartesian(xlim= c(0, 1000))
+
+#Friend count after limiting the data using limits
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma, limits= c(0, 1000)) 
+
+
+#Friend count after limiting the data using limits and binwidth = 25, and breaks at 50
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(binwidth = 25, colour = "white", fill = primary_color[1], 
+                 alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 1000), breaks = seq(0, 1000, 100)) 
+
+
+#Friend count faceted by gender
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(binwidth = 25, colour = "white", fill = primary_color[1], 
+                 alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 1000), breaks = seq(0, 1000, 100)) +
+  facet_wrap(~gender)
+
+#Friend count fill by gender
+ggplot(data = filter(fb_df, !is.na(gender)),  # remove records where gender is NA
+       aes(x=friend_count)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_density(aes(group = gender, fill = gender, colour = gender),
+                 binwidth = 25, #colour = "white", #fill = primary_color[1], 
+                 alpha = 0.1, size = 0.25) +
+  scale_y_continuous() + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 1000), breaks = seq(0, 1000, 100))
+
+
+#Friend count fill by gender using specified color palettes
+ggplot(data = na.omit(fb_df),  # remove records where any field is NA
+       aes(x=friend_count)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_density(aes(group = gender, fill = gender, colour = gender),
+                 binwidth = 25, #colour = "white", #fill = primary_color[1], 
+                 alpha = .2, size = .25) +
+  #scale_fill_manual(values=highlight_color) +  # for manually defined palette
+  #scale_color_manual(values=highlight_color) +
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  scale_y_continuous() + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 1000), breaks = seq(0, 1000, 100))
+
+
+```
+
+
+```{r summary of friend count by gender,message=FALSE, echo=TRUE, warning=FALSE}
+
+
+#count of levels in gender
+fb_df %>%
+  group_by(gender) %>%
+  summarise(count = n())
+
+#min value of each variable by gender 
+fb_df %>%
+  na.omit() %>% #filter out rows with missing values in any variable
+  group_by(gender) %>%
+  summarise_each(funs(min))
+
+
+```
+
+
+```{r Histogram for Tenure,message=FALSE, echo=TRUE, warning=FALSE}
+
+#Histogram for tenure
+ggplot(data = fb_df, aes(x = tenure/365)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(binwidth = 1/4, colour = "white", fill = primary_color[1], 
+                 alpha = .3, size = .25) +
+  xlab("Tenure (years)") +
+  ylab("# of Facebook members") +
+  ggtitle("Distribution of members by tenure") +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 7), breaks = seq(0, 7, 1)) +
+  geom_hline(yintercept=0, size=0.75, color="grey")
+
+
+```
+
+Code snippet settings:  message=FALSE, echo=FALSE, warning=FALSE
