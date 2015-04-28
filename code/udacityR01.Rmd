@@ -3,6 +3,7 @@ title: "Udacity - EDA using R"
 output:
   html_document:
     theme: cerulean
+    toc: yes
 ---
 
 Exercises from Udacity's Exploratory Data Analysis in R MOOC
@@ -13,6 +14,7 @@ Exercises from Udacity's Exploratory Data Analysis in R MOOC
 
 #set up chart theme function and load required packages
 source("../r_config/r_env_setup.R")
+
 
 ```
 
@@ -71,13 +73,30 @@ ggplot(data = reddit_df, aes(x = age.range)) +
 ```
 
 ###Pseudo Facebook Dataset
-```{r pseudo facebook dataset, message=FALSE, echo=TRUE, warning=FALSE}
+```{r Load pseudo facebook dataset, message=FALSE, echo=TRUE, warning=FALSE}
 #read the dataset into R
 fb_df <- read.csv("../data/pseudo_facebook.tsv", header = TRUE,
                   stringsAsFactors = FALSE, sep="\t")
 
 #take a peek into the fb data
 glimpse(fb_df)
+```
+
+##Create custom color scale for factor variables
+```{r Custom color scale, message=FALSE, echo=TRUE, warning=FALSE}
+
+#Create a custom color scale
+myColors <- brewer.pal(3,"Set2")
+
+fb_df$gender = factor(fb_df$gender)
+names(myColors) <- levels(fb_df$gender)
+colScalegender <- scale_colour_manual(name = "gender",values = myColors)
+fillScalegender <- scale_fill_manual(name = "gender",values = myColors)
+```
+
+###Facebook data - EDA
+```{r pseudo facebook dataset, message=FALSE, echo=TRUE, warning=FALSE}
+
 
 #histogram of b'days
 ggplot(data = fb_df, aes(x = dob_day)) +
@@ -161,7 +180,7 @@ ggplot(data = fb_df, aes(x=friend_count)) +
                  alpha = 0.4, size = 0.25) +
   scale_y_continuous(labels = comma) + 
   scale_x_continuous(labels = comma, 
-                     limits= c(0, 1000), breaks = seq(0, 1000, 100)) +
+                     limits= c(0, 1000), breaks = seq(0, 1000, 300)) +
   facet_wrap(~gender)
 
 #Friend count fill by gender
@@ -228,7 +247,117 @@ ggplot(data = fb_df, aes(x = tenure/365)) +
                      limits= c(0, 7), breaks = seq(0, 7, 1)) +
   geom_hline(yintercept=0, size=0.75, color="grey")
 
+```
+
+```{r Histogram for Age, message=FALSE, echo=TRUE, warning=FALSE}
+
+#histogram for user age
+ggplot(data = fb_df, aes(x = age)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25) +
+  geom_hline(yintercept=0, size = 0.75, color = "grey") +
+  scale_y_continuous(labels = comma) +
+  ggtitle("Distribution of members by Age") +
+  xlab("member age") +
+  ylab("# of Facebook members")
+
+
+#histogram for user age with adjusted binwidth
+#A binwidth of 1 allows us to visualize any unusual spikes in the data
+ggplot(data = fb_df, aes(x = age)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25,
+                 binwidth = 1) +
+  geom_hline(yintercept=0, size = 0.75, color = "grey") +
+  scale_y_continuous(labels = comma) +
+  ggtitle("Distribution of members by Age") +
+  xlab("member age") +
+  ylab("# of Facebook members") +
+  scale_x_discrete(labels = comma, breaks = seq(min(fb_df$age), max(fb_df$age), 10))
 
 ```
+
+### Transforming data
+```{r Transforming data, message=FALSE, echo=TRUE, warning=FALSE }
+
+summary(fb_df$friend_count)
+
+#Log transform for the # of likes
+summary(log10(fb_df$friend_count))
+
+#Log transform for the # of likes +1 to avoid infinity at log zero
+summary(log10(fb_df$friend_count + 1))
+
+# visualize friend count 
+p1 <-
+ggplot(data = fb_df, aes(x = friend_count)) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25) +
+  scale_y_continuous(labels = comma) +
+  scale_x_continuous(labels = comma)
+
+#visualize friend count with log
+p2 <-
+ggplot(data = fb_df, aes(x = log10(friend_count + 1))) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25) +
+  scale_y_continuous(labels = comma)
+
+#visualize friend count with square root
+p3 <-
+ggplot(data = fb_df, aes(x = sqrt(friend_count))) +
+  do.call(chart_theme_min, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25) +
+  scale_y_continuous(labels = comma)
+
+grid.arrange(p1, p2, p3, ncol = 1)
+
+#alternate way for log scale P2. Note that the x axis label doesn't reflect log
+p1 + scale_x_log10()
+
+```
+
+###Frequency polygons
+Note that sum(..count..) will sum across color, so the percentages displayed are percentages of total users. To plot percentages within each group, you can try y = ..density...
+
+```{r Frequency polygons with manular color and fill scales, message=FALSE, echo=TRUE, warning=FALSE}
+
+
+ggplot(data = filter(fb_df, !is.na(gender)), 
+       aes(x = friend_count)) +
+  do.call(chart_theme_min, as.list((chart_format_hist_no_vgrid["fsize"] = 14))) + 
+  geom_histogram(aes(fill = gender),
+                 binwidth = 10,
+                 color = 'white',
+                 alpha = 0.5, size = 0.25) +
+  fillScalegender +
+  scale_x_continuous(labels = comma,
+                     lim = c(0, 1000)) +
+  scale_y_continuous(labels = comma)
+  theme(legend.position = "right")
+
+# frequency polygon - friend count
+ggplot(data = filter(fb_df, !is.na(gender)), 
+       aes(x = friend_count,
+           y = ..count../sum(..count..))) +
+  do.call(chart_theme_min, as.list((chart_format_hist_no_vgrid["fsize"] = 14))) +
+  geom_freqpoly(aes(color = gender, fill = gender),
+                binwidth = 10,
+                alpha = 1, size = 1.5) +
+  colScalegender +
+  #scale_color_brewer(palette = "Set1") +
+  scale_y_continuous(labels = percent) +
+  scale_x_continuous(labels = comma,
+                     lim = c(0, 1000)) +
+  theme(legend.position = "right")
+
+
+```
+
 
 Code snippet settings:  message=FALSE, echo=FALSE, warning=FALSE

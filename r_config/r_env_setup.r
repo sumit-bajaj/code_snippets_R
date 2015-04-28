@@ -32,7 +32,7 @@ chart_format_bar2 <- c(fsize=14, vgrid=0, hgrid=1, mvgrid=0, mhgrid=0)
 #http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
 
 # Assign primary colors
-col_pal = brewer.pal(3, "Set2")
+#col_pal = brewer.pal(3, "Set2")
 #color1 = col_pal[1]
 primary_color = c("#1A75CF", "#003896", "#6CABE7")
 highlight_color = c("#F47B20", "#FDBB30", "#337321", "#61BF1A")
@@ -52,7 +52,7 @@ chart_theme_min <- function(fsize = 14, vgrid = 1, hgrid = 1, mvgrid=0, mhgrid=0
   # crude hack for geom_text text size scaling
   text.size <<- (5/14)*0.8*theme.size 
   
-  # Generate the colors for the chart procedurally with RColorBrewer
+  # Generate the grey colors for the chart procedurally with RColorBrewer
   palette <- brewer.pal("Greys", n=9)
   color.background = palette[2]
   color.grid.major = palette[3]
