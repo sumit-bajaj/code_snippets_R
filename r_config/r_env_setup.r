@@ -4,17 +4,25 @@
 packages = list("ggplot2",
                 "ggthemes",
                 "scales", 
+                "lubridate",
+                "stringr",
                 "gridExtra",
-                "dplyr", 
+                "readr",
+                "data.table",
                 "tidyr",
                 "RColorBrewer",
                 "knitr",
+                "htmlTable",
                 "grid",
                 "xtable",
                 "energy",
-                "GGally")
+                "GGally",
+                "caret",
+                "corrplot",
+                "dplyr")
 
 # check for installed packages, install missing ones and load the ones specified in "packages"
+
 for (package in packages){
   if (package %in% installed.packages()[,"Package"] == FALSE){
     install.packages(package, dependencies = T); # install missing packages
@@ -26,14 +34,13 @@ for (package in packages){
 
 #Specify custom colors
 color_primary_pal = c("#1A75CF", "#003896", "#6CABE7")
-
 color_highlight_pal = c("#F47B20", "#FDBB30", "#337321", "#61BF1A")
 
 
 
 #Default font size for charts
 chart.theme.size = 14
-chart.line.size = 1.25
+chart.line.size = 0.75
 
 #chart theme presets for the custom theme function
 chart_format_default <- c(fsize=chart.theme.size, vgrid=1, hgrid=1, mvgrid=0, mhgrid=0)
@@ -65,7 +72,6 @@ chart_theme_minimal <- function(fsize = chart.theme.size, vgrid = 0, hgrid = 1, 
   #color.axis.title = palette[7]
   color.axis.title = palette[5]
   color.title = palette[7]
-  
   
   
   
@@ -151,6 +157,7 @@ chart_footer <- annotate("text", x = Inf, y = -Inf, label = "sumitbajaj.me", hju
 
 #call the custom ggplot theme with a preset
 chart_theme01 <- do.call(chart_theme_minimal, as.list(chart_format_default))
+chart_theme_default <- do.call(chart_theme_minimal, as.list(chart_format_default))
 chart_theme_histogram <- do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid))
 chart_theme_bar <- do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid))
 chart_theme_scatter <- do.call(chart_theme_minimal, as.list(chart_format_default))
@@ -162,7 +169,7 @@ legend_top <- theme(legend.position="top")
 legend_title_hide <- theme(legend.title=element_blank())
 
 #over-ride default size for legend symbol
-legend_size_override <- function(size = chart.line.size){
+legend_size_override <- function(size = chart.line.size*2){
   guides(colour = guide_legend(override.aes = list(size=size)))
 }
 

@@ -1,0 +1,180 @@
+---
+title: "Udacity - EDA using R"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 9
+    echo: FALSE
+    dpi: 144
+    theme: cerulean
+    toc: yes
+    
+---
+
+Test code snippets
+
+
+
+```{r, echo=TRUE, message=FALSE, warning = FALSE, eval=TRUE}
+
+
+```
+
+###Set up packages, chart themes etc
+```{r Set up packages and environment, echo=TRUE, message=FALSE, warning = FALSE, eval=TRUE}
+
+#set up chart theme function and load required packages
+chart.theme.size = 14
+
+#theme_set(theme_minimal(chart.theme.size)) #minimal theme as default
+
+#load packages and cutom ggplot theme function and presets
+source("../r_config/r_packages_setupv1.R") 
+source("../r_config/r_visualization_setupv1.R")
+
+
+
+```
+
+###Reddit dataset
+```{r reddit data, echo=TRUE, message=FALSE, warning = FALSE, eval=TRUE}
+
+#load the reddit dataset
+reddit_df <- read.csv("../data/reddit.csv", header = T,
+                      stringsAsFactors=TRUE, sep=",",
+                      nrow = 1000)
+
+
+reddit_df$age.range <- factor(reddit_df$age.range, 
+                               levels=c("Under 18", "18-24", "25-34", "35-44", "45-54", 
+                                        "55-64", "65 or Above" ),
+                               ordered = TRUE)
+
+#Number of rows and columns
+#dim(reddit_df)
+
+#List of variables
+#names(reddit_df)
+
+#structure of the dataset
+#str(reddit_df)
+
+#levels of employment status
+#levels(reddit_df$age.range)
+
+#count summary of employement status
+#table(reddit_df$age.range)
+
+#barblot for age range
+#foot_text = "Source: xxx"
+
+theme_set(chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1)) 
+#theme_set(theme_minimal(chart.theme.size)) 
+
+
+ggplot(data = reddit_df, aes(x = age.range)) +
+  chart_theme_custom_minimal(background_grey = 1, text.y.color = "black", text.x.color = "transparent")+
+  geom_bar() + coord_flip() +
+  geom_hline(yintercept = 0) +
+  #geom_text(stat = "bin", aes(label=..count..), hjust = -0.3, vjust=0.5, colour="black", size = 10) +
+  labs(x = "", y ="") 
+
+
+  #legend_show(position = "top",show_title = 1) +
+  #legend_size() +
+  #labs(title ="chart title")+
+  #coord_flip()+
+  #facet_wrap(~education) +
+  #theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5))
+ 
+  
+
+
+```
+
+```{r new theem test}
+
+#dev.off()  #to clear out invalid graphics state
+
+ggplot(data = reddit_df, aes(x = age.range)) + 
+  geom_bar() + #coord_flip() +
+  chart_watermark()+
+  ggtitle("Bar Chart") 
+
+chart_footnote(text = "test\nSource:")
+  
+
+```
+
+```{r}
+ggplot(data = reddit_df, aes(x = age.range)) + 
+  chart_theme_custom_base(background_grey = 0) +
+  #geom_point() +
+  #geom_line()+
+  geom_bar() +
+  #scale_fill_brewer(palette="Set1") +
+  legend_show()+
+  #scale_fill_manual(values = color_qualitative_pal) +
+  ggtitle("chart title")
+```
+
+```{r selective bar fill}
+
+#load the grey color palette with 9 levels (light to dark)
+palette <- brewer.pal("Greys", n=9)
+
+
+ggplot(data = reddit_df, aes(x = age.range)) + 
+  #chart_theme_custom_base(background_grey = 1, mhgrid = 1) +
+  geom_bar(aes(fill = ..count.. > 400)) +
+  ylim(0, 600) +
+  scale_fill_manual(values=c(palette[3], color_primary_pal[1] )) +
+  legend_show(show_title = 0) +
+  geom_text(stat = "bin", aes(label=..count.., color = ..count..>400), hjust = 0.5, vjust=-.3, size = 10) +
+  scale_color_manual(values=c(palette[3], color_primary_pal[1] )) +
+  chart_watermark(size = 4)
+
+chart_footnote()
+
+```
+
+
+```{r horizontal bar chart with selective fill}
+
+#load the grey color palette with 9 levels (light to dark)
+palette_grey <- brewer.pal("Greys", n=9)
+
+#http://www.cookbook-r.com/Manipulating_data/Changing_the_order_of_levels_of_a_factor/
+
+reddit_df %>% filter(age.range != 'NA') %>%
+ggplot(aes(x = factor(age.range, levels=rev(levels(age.range))))) + #reverse ther order of age.range
+  chart_theme_custom_minimal(text.x.color = "transparent", fsize = 14) +
+  geom_bar(aes(fill = ..count.. > 400)) +
+  coord_flip() +
+  ylim(0, 600) +
+  labs(x = "", y = "") +
+  scale_fill_manual(values = (color_fill_selective_pal)) +
+  #legend_size(symbol_size = .1) +
+  #legend_show(show_title = 0, size = 2) +
+  geom_text(stat = "bin", aes(label=..count.., color = ..count..>400), hjust = -0.3, vjust=.5, size = text_size_scale(14)) +
+  scale_color_manual(values=c(palette_grey[3], color_primary_pal[1] )) +
+  chart_watermark(size = 4)
+
+chart_footnote()
+
+```
+
+```{r color palettes}
+
+show_col(tableau_color_pal("tableau20")(3))
+show_col(tableau_color_pal("tableau10")(10))
+show_col(tableau_color_pal("tableau10medium")(10))
+show_col(tableau_color_pal("tableau10light")(10))
+show_col(tableau_color_pal("colorblind10")(10))
+show_col(tableau_color_pal("trafficlight")(10))
+show_col(tableau_color_pal("purplegray12")(12))
+show_col(tableau_color_pal("bluered12")(12))
+show_col(tableau_color_pal("greenorange12")(12))
+show_col(tableau_color_pal("cyclic")(20))
+```
+

@@ -1,0 +1,344 @@
+---
+title: "Statistical Learning"
+author: "Sumit Bajaj"
+date: "Jan 2015"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 9
+    theme: cerulean
+    toc: yes
+---
+
+
+##Set up the R computing environment
+```{r Set up packages, message=FALSE, warning=FALSE, echo=TRUE}
+
+#set up chart theme function and load required packages
+chart.theme.size = 14
+
+source("../r_config/r_env_setup.R") #load packages and cutom ggplot theme function and presets
+path_data = "../data/ISLR_data/"
+
+library(MASS)
+#install.packages("ISLR")
+library(ISLR)
+
+
+```
+
+##R Basics
+###vectors, data, matrices, subsetting
+
+```{r vectors, data, matrices, subsetting, echo=TRUE, message=FALSE, warning=FALSE}
+
+# create a numberical vector
+x=c(2,7,5)
+x
+
+# create a vector from sequence from, number of elments and increment by
+y=seq(from=4, length=3,by=3)
+y
+
+# create a vector from sequence from to and increment by
+y=seq(from=4, to=13, by=3)
+y
+
+x+y
+x/y
+x^y
+x[2] # print second element of vector x - starts from 1
+x[2:3]
+x[-2] # remove the element 2 from the vector and return the rest
+x[-c(1,2)] # remove elements 1 and 2 from the vector
+
+# 12 element matrix with 4 rows and 3 col
+z=matrix(seq(1,12),4,3) 
+z
+
+# rows 3 to 4 and col 2 to 3
+z[3:4,2:3]
+
+z[,2:3] # all rows and columns 2, 3
+z[,1] # all rows and column 1
+z[,1,drop=FALSE] # retain the matrix
+
+dim(z) # no. of rows and col
+ls() # list of data objects
+rm(y) # remove vector y
+ls()
+```
+
+### Generating random data, graphics
+```{r Generating random data, graphics, , message=FALSE, warning=FALSE}
+x=runif(50)
+x
+
+xd = data.frame(x)
+qplot(data=xd, x, geom="histogram", binwidth=0.1) + chart_theme_default
+
+y=rnorm(50)
+yd = data.frame(x)
+qplot(data=yd, y, geom="histogram", binwidth=0.1)
+
+# combine x and y vectors to a dataframe
+data = data.frame(x, y)
+
+#scatterplot x and y
+ggplot(data, aes(x=x, y=y)) + chart_theme_default +
+  geom_point(size = 6, color= color_primary_pal[2], alpha = .5) +
+  xlab("Random Uniform") +
+  ylab("Random Normal")
+
+plot(x,y,xlab="Random Uniform",ylab="Random Normal",pch="*",col="blue")
+
+#panel with two charts stacked
+#par(mfrow=c(2,1))
+plot(x,y)
+hist(y)
+
+#panel with two charts side by side
+#par(mfrow=c(1,2))
+hist(y)
+hist(x)
+
+### Reading in data
+
+Auto = read_csv(file = paste(path_data, "Auto.csv", sep =""))
+problems(Auto)
+names(Auto)
+dim(Auto)
+class(Auto)
+summary(Auto)
+plot(Auto$cylinders,Auto$mpg)
+plot(Auto$cyl,Auto$mpg)
+attach(Auto)
+search()
+plot(cylinders,mpg)
+cylinders=as.factor(cylinders)
+plot(cylinders,mpg,xlab="Cylinders",ylab="Mpg",col="red")
+pairs(mpg~cylinders+acceleration+weight,Auto)
+
+```
+
+## LINEAR REGRESSION
+### Simple Linear Regression
+```{r Simple Linear Regression, message=FALSE, warning=FALSE}
+
+#Linear regression
+names(Boston)
+head(Boston)
+#?Boston
+plot(medv~lstat,Boston)
+
+fit1=lm(medv~lstat,data=Boston)
+fit1
+summary(fit1)
+
+abline(fit1,col="red")
+
+names(fit1)
+fit1$coefficients
+coefficients(fit1)
+
+confint(fit1)
+
+#predict outcomes (median value) for 3 data points
+predict(fit1,data.frame(lstat=c(5,10,15)),interval="confidence")
+
+#Using caret
+fit1_caret <- train(medv~lstat, data = Boston, method = "lm")
+fit1_caret
+names(fit1_caret)
+names(fit1_caret$finalModel)
+summary(fit1_caret)
+fit1_caret$finalModel$coefficients
+
+#score the model on the training data 
+pred1_caret = predict(fit1_caret$finalModel, newdata = Boston)
+
+#predict outcomes (median value) for 3 data points along with confidence intervals
+predict(fit1_caret$finalModel,data.frame(lstat=c(5,10,15)),interval="confidence", level = .95)
+
+summary(pred1_caret)
+
+#coefficients for the model
+coefficients(fit1_caret$finalModel)
+
+#confidence interval for the model
+confint(fit1_caret$finalModel, level = .95)
+
+#fitted values from the model object
+summary(fit1_caret$finalModel$fitted.values)
+summary(Boston$medv)
+#plot(fit1_caret$finalModel)
+
+#plot residuals and fitted values
+ggplot(data = Boston, aes(x = lstat, y = medv)) + chart_theme_default +
+  geom_point(color = color_primary_pal[1], size = 2, alpha = 0.7) +
+  geom_point(aes(x = lstat, y = fit1_caret$finalModel$residuals, color = "Residuals"),
+             size = 2, alpha = 0.7) +
+  geom_hline(yintercept = 0, color = color_primary_pal[1]) +
+  geom_line(aes(x = lstat, y = fit1_caret$finalModel$fitted.values)) +
+  legend_top + legend_size_override(5) + legend_title_hide
+
+#plot actual vs fitted values
+ggplot(data = Boston, aes(y = medv, x = pred1_caret)) + chart_theme_default +
+  geom_point(color = color_primary_pal[1], size = 2, alpha = 0.7) 
+
+
+#Library for high quality model visualization
+#http://www.strengejacke.de/sjPlot/sjp.lm/
+#https://susanejohnston.wordpress.com/2012/08/09/a-quick-and-easy-function-to-plot-lm-results-in-r/
+  
+library(sjPlot)
+# load sample data
+data(Auto)
+# set plot theme
+sjp.setTheme(theme = "539")
+# plot frequencies
+sjp.frq(Auto$year)
+
+sjp.lm(fit1, type = "pred")
+
+par(mfrow=c(2,2))
+#plot(fit1)
+plot(fit1_caret$finalModel)
+#from the curve in the residuals we can see that the model is not quite capturing the non-linearity
+
+
+```
+
+### Multiple Linear Regression
+```{r Multiple Linear Regression, echo=TRUE, message=FALSE, warning=FALSE}
+
+#Linear model median value as a function of lstat and age
+fit2=lm(medv~lstat+age,data=Boston)
+fit2=train(medv~lstat+age, method = "lm", data=Boston)
+
+summary(fit2)
+
+fit3=train(medv~., method = "lm", data=Boston)
+summary(fit3)
+
+par(mfrow=c(2,2))
+plot(fit3$finalModel)
+
+fit4=train(medv~., method = "lm", data=dplyr::select(Boston, -c(age, indus)))
+
+
+summary(fit4)
+
+```
+
+###Non Linear Terms & Interactions
+```{r Non Linear Terms and Interactions, message=FALSE, warning=FALSE}
+
+#interaction between lstat and age
+fit5=lm(medv~lstat*age,Boston)
+summary(fit5)
+fit6=lm(medv~lstat +I(lstat^2),Boston); summary(fit6)
+attach(Boston)
+par(mfrow=c(1,1))
+plot(medv~lstat)
+points(lstat,fitted(fit6),col="red",pch=20)
+fit7=lm(medv~poly(lstat,4))
+points(lstat,fitted(fit7),col="blue",pch=20)
+plot(1:20,1:20,pch=1:20,cex=2)
+
+```
+
+###Qualitative Predictors
+```{r Qualitative predictors,  message=FALSE, warning=FALSE}
+#Qualitative predictors
+
+names(Carseats)
+summary(Carseats)
+fit1=lm(Sales~.+Income*Advertising+Age*Price,Carseats)
+summary(fit1)
+contrasts(Carseats$ShelveLoc)
+```
+
+#R functions ...
+```{r,  message=FALSE, warning=FALSE}
+
+#Writing R functions
+regplot=function(x,y){
+  fit=lm(y~x)
+  plot(x,y)
+  abline(fit,col="red")
+}
+attach(Carseats)
+regplot(Price,Sales)
+
+#the ... arguments get passed as it is in the function
+regplot=function(x,y,...){
+  fit=lm(y~x)
+  plot(x,y,...)
+  abline(fit,col="red")
+}
+regplot(Price,Sales,xlab="Price",ylab="Sales",col="blue",pch=20)
+
+```
+#Classification
+##Logistic regression
+```{r code snippet, message=FALSE, warning=FALSE, echo=TRUE}
+names(Smarket)
+head(Smarket, 3)
+summary(Smarket)
+#?Smarket
+
+pairs(Smarket,col=Smarket$Direction)
+
+ggpairs(Smarket, columns = c(6:9), color = "Direction", params=list(corSize=5))
+
+qplot(x=Var1, y=Var2, data=melt(cor(attitude)), fill=value, geom="tile")
+
+
+# Logistic regression
+glm.fit=glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume,
+            data=Smarket,family=binomial)
+summary(glm.fit)
+glm.probs=predict(glm.fit,type="response") 
+glm.probs[1:5]
+glm.pred=ifelse(glm.probs>0.5,"Up","Down")
+attach(Smarket)
+table(glm.pred,Direction)
+mean(glm.pred==Direction)
+
+#Logistic regression using Caret
+glm.fit.model = train(data = Smarket, 
+                      Smarket$Direction ~Lag1+Lag2+Lag3+Lag4+Lag5+Volume, 
+                      preProcess = c("scale", "center"),
+                      method = "glm", family=binomial(link = "logit"))
+
+
+summary(glm.fit.model)
+glm.fit.model$finalModel$coefficients
+
+
+# Make training and test set
+train = Year<2005
+glm.fit=glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume,
+            data=Smarket,family=binomial, subset=train)
+glm.probs=predict(glm.fit,newdata=Smarket[!train,],type="response") 
+glm.pred=ifelse(glm.probs >0.5,"Up","Down")
+Direction.2005=Smarket$Direction[!train]
+table(glm.pred,Direction.2005)
+mean(glm.pred==Direction.2005)
+
+#Fit smaller model
+glm.fit=glm(Direction~Lag1+Lag2,
+            data=Smarket,family=binomial, subset=train)
+glm.probs=predict(glm.fit,newdata=Smarket[!train,],type="response") 
+glm.pred=ifelse(glm.probs >0.5,"Up","Down")
+table(glm.pred,Direction.2005)
+mean(glm.pred==Direction.2005)
+106/(76+106)
+
+```
+
+```{r code snippet, message=FALSE, warning=FALSE, echo=TRUE}
+
+```
+

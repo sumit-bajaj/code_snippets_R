@@ -1,0 +1,959 @@
+---
+title: "Udacity - EDA using R"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 9
+    dpi: 144
+    theme: cerulean
+    toc: yes
+---
+Exercises from Udacity's Exploratory Data Analysis in R MOOC
+
+
+###Set up packages, chart themes etc
+
+```{r Set up packages and environment, message=FALSE, echo=TRUE, warning=FALSE}
+
+#set up chart theme function and load required packages
+chart.theme.size = 14
+#theme_set(theme_minimal(chart.theme.size)) #minimal theme as default
+source("../r_config/r_env_setup.R") #load packages and cutom ggplot theme function and presets
+primary_color = color_primary_pal
+highlight_color = color_highlight_pal
+set_ggplot_theme01 <- do.call(chart_theme_minimal, as.list(chart_format_default))
+
+
+
+```
+
+###Reddit dataset
+```{r reddit data, message=FALSE, echo=TRUE, warning=FALSE}
+
+#load the reddit dataset
+reddit_df <- read.csv("../data/reddit.csv", header = T,
+                      stringsAsFactors=TRUE, sep=",",
+                      nrow = 1000)
+
+#Number of rows and columns
+dim(reddit_df)
+
+#List of variables
+names(reddit_df)
+
+#structure of the dataset
+str(reddit_df)
+
+#levels of age range
+levels(reddit_df$age.range)
+
+#count summary of age range
+table(reddit_df$age.range)
+
+#barblot for age range. Selective coloring of age ranges where count > 300
+ggplot(data = reddit_df, aes(x = age.range)) +
+  #geom_bar_custom +
+  geom_bar(aes(fill = ..count.. > 300)) +
+  scale_fill_brewer(palette="Set1")  +
+  #geom_hline(yintercept=0, size=0.75, color="grey") +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+  chart_theme_bar +
+  chart_footer 
+chart_footnote("Source: Sample Reddit data\nNote*: <add text>")
+
+#p1<-
+ggplot(data = reddit_df, aes(x = age.range)) +
+  geom_bar_custom +
+  #geom_hline(yintercept=0, size=0.75, color="grey") +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+  chart_theme_bar +
+  chart_footer
+chart_footnote("Source: Sample Reddit data\nNote*: <add text>")
+
+
+#ggsave("random_data.png", g, width=12, height=9)
+
+
+#Notice that under18 bucket is at the end which is non-intuitive
+```
+
+###Order a factor variable
+```{r create ordered factor variable age.range, message=FALSE, echo=TRUE, warning=FALSE}
+
+reddit_df$age.range <- ordered(reddit_df$age.range, 
+                             levels=c("Under 18", "18-24", "25-34", "35-44", "45-54", 
+                                      "55-64", "65 or Above" ))
+
+#or alternatively
+reddit_df$age.range <- factor(reddit_df$age.range, 
+                               levels=c("Under 18", "18-24", "25-34", "35-44", "45-54", 
+                                        "55-64", "65 or Above" ),
+                               ordered = TRUE)
+
+#barblot for age range after ordering the factor variable
+ggplot(data = reddit_df, aes(x = age.range)) +
+  do.call(chart_theme_minimal, as.list(chart_format_bar2)) +
+  geom_bar(colour = primary_color[1], fill = primary_color[1], alpha = 0.5, size = 0.25) +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+  geom_hline(yintercept=0, size=0.75, color="grey") 
+#Notice that under18 bucket is placed as the first bar now
+```
+
+###Pseudo Facebook Dataset
+```{r Load pseudo facebook dataset, message=FALSE, echo=TRUE, warning=FALSE}
+#read the dataset into R
+fb_df <- read.csv("../data/pseudo_facebook.tsv", header = TRUE,
+                  stringsAsFactors = FALSE, sep="\t")
+
+#take a peek into the fb data
+glimpse(fb_df)
+```
+
+###Create custom color scale for factor variables
+```{r Custom color scale, message=FALSE, echo=TRUE, warning=FALSE}
+
+#Create a custom color scale
+myColors <- brewer.pal(3,"Set1")
+
+fb_df$gender = factor(fb_df$gender)
+
+#assign factor levels as names to the custom color scale
+names(myColors) <- levels(fb_df$gender)
+
+#create an alias for the custom color / fill scale
+colScalegender <- scale_colour_manual(name = "gender",values = myColors)
+fillScalegender <- scale_fill_manual(name = "gender",values = myColors)
+```
+
+##Facebook data - EDA
+```{r pseudo facebook dataset, message=FALSE, echo=TRUE, warning=FALSE}
+
+
+#histogram of b'days
+ggplot(data = fb_df, aes(x = dob_day)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  xlab("Day of birth") + ylab("# of members") +
+  ggtitle("Member Distribution by Day of Birth") +
+  scale_x_discrete(breaks = seq(1,31, 2)) +
+  scale_y_continuous(labels = comma) +
+  chart_footer +
+  geom_hline(yintercept=0, size=0.75, color="grey") +
+  geom_vline(xintercept=1, size=0.75, color = primary_color[1]) +
+  annotate("text", x = 2, y = 6500, 
+           label = 
+             "Abnormally high counts for 1st day of the month\nSeveral member may be selecting the first\ndropdown choice when selecting the day of birth", 
+           size = text.size,color = primary_color[1],
+           hjust = 0) 
+chart_footnote()
+
+#faceted by month
+#histogram of b'days
+ggplot(data = fb_df, aes(x = dob_day)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  xlab("Day of birth") + ylab("# of members") +
+  ggtitle("Member Distribution by Day of Birth faceted by Month") +
+  scale_y_continuous(labels = comma) +
+  scale_x_discrete(breaks = seq(1,31, 8)) +
+  geom_hline(yintercept=0, size=0.75, color="grey")+
+  facet_wrap(~dob_month, ncol = 4)
+chart_footnote()
+
+#faceted by month and using density (area under each plot is 1) and free scales
+#histogram of b'days
+ggplot(data = fb_df, aes(x = dob_day)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(aes(y=..density..), colour = "white", 
+                 fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = percent) +
+  xlab("Day of birth") + ylab("# of members") +
+  ggtitle("Member Distribution by Day of Birth faceted by Month") +
+  scale_x_discrete(breaks = seq(1,31, 8)) +
+  geom_hline(yintercept=0, size=0.75, color="grey")+
+  facet_wrap(~dob_month, scales = "free", ncol = 4)
+
+
+#Histogram of friend count (notice that data is concentrated at Zero with few outliers)
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + scale_x_continuous(labels = comma) 
+
+#Friend count after zooming into the previous chart using coord_cartesian
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma) +
+  coord_cartesian(xlim= c(0, 1000))
+
+#Friend count after limiting the data using limits
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma, limits= c(0, 1000)) 
+
+
+#Friend count after limiting the data using limits and binwidth = 25, and breaks at 50
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(binwidth = 25, colour = "white", fill = primary_color[1], 
+                 alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 1000), breaks = seq(0, 1000, 100)) 
+
+
+#Friend count faceted by gender
+ggplot(data = fb_df, aes(x=friend_count)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(binwidth = 25, colour = "white", fill = primary_color[1], 
+                 alpha = 0.4, size = 0.25) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 1000), breaks = seq(0, 1000, 300)) +
+  facet_wrap(~gender)
+
+#Friend count fill by gender
+ggplot(data = filter(fb_df, !is.na(gender)),  # remove records where gender is NA
+       aes(x=friend_count)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_density(aes(group = gender, fill = gender, colour = gender),
+                 binwidth = 25, #colour = "white", #fill = primary_color[1], 
+                 alpha = 0.1, size = 0.25) +
+  scale_y_continuous() + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 1000), breaks = seq(0, 1000, 100))
+
+
+#Friend count fill by gender using specified color palettes
+ggplot(data = na.omit(fb_df),  # remove records where any field is NA
+       aes(x=friend_count)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_density(aes(group = gender, fill = gender, colour = gender),
+                 binwidth = 25, #colour = "white", #fill = primary_color[1], 
+                 alpha = .2, size = .25) +
+  #scale_fill_manual(values=highlight_color) +  # for manually defined palette
+  #scale_color_manual(values=highlight_color) +
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  scale_y_continuous() + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 1000), breaks = seq(0, 1000, 100))
+
+
+```
+
+
+```{r summary of friend count by gender,message=FALSE, echo=TRUE, warning=FALSE}
+
+
+#count of levels in gender
+fb_df %>%
+  group_by(gender) %>%
+  summarise(count = n())
+
+#min value of each variable by gender 
+fb_df %>%
+  na.omit() %>% #filter out rows with missing values in any variable
+  group_by(gender) %>%
+  summarise_each(funs(min))
+
+
+```
+
+
+```{r Histogram for Tenure,message=FALSE, echo=TRUE, warning=FALSE}
+
+#Histogram for tenure
+ggplot(data = fb_df, aes(x = tenure/365)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(binwidth = 1/4, colour = "white", fill = primary_color[1], 
+                 alpha = .3, size = .25) +
+  xlab("Tenure (years)") +
+  ylab("# of Facebook members") +
+  ggtitle("Distribution of members by tenure") +
+  scale_y_continuous(labels = comma) + 
+  scale_x_continuous(labels = comma, 
+                     limits= c(0, 7), breaks = seq(0, 7, 1)) +
+  geom_hline(yintercept=0, size=0.75, color="grey") +
+  annotate("text", x = Inf, y = -Inf, label = "sumitbajaj.me",
+           hjust=1.1, vjust= -.5, col="gray", cex=4, alpha = 0.8)
+
+```
+
+```{r Histogram for Age, message=FALSE, echo=TRUE, warning=FALSE}
+
+#histogram for user age
+ggplot(data = fb_df, aes(x = age)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25) +
+  geom_hline(yintercept=0, size = 0.75, color = "grey") +
+  scale_y_continuous(labels = comma) +
+  ggtitle("Distribution of members by Age") +
+  xlab("member age") +
+  ylab("# of Facebook members")
+
+
+#histogram for user age with adjusted binwidth
+#A binwidth of 1 allows us to visualize any unusual spikes in the data
+ggplot(data = fb_df, aes(x = age)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25,
+                 binwidth = 1) +
+  geom_hline(yintercept=0, size = 0.75, color = "grey") +
+  scale_y_continuous(labels = comma) +
+  ggtitle("Distribution of members by Age") +
+  xlab("member age") +
+  ylab("# of Facebook members") +
+  scale_x_discrete(labels = comma, breaks = seq(min(fb_df$age), max(fb_df$age), 10))
+
+```
+
+### Transforming data - Log, Sqrt etc
+```{r Transforming data, message=FALSE, echo=TRUE, warning=FALSE }
+
+summary(fb_df$friend_count)
+
+#Log transform for the # of likes
+summary(log10(fb_df$friend_count))
+
+#Log transform for the # of likes +1 to avoid infinity at log zero
+summary(log10(fb_df$friend_count + 1))
+
+# visualize friend count 
+p1 <-
+ggplot(data = fb_df, aes(x = friend_count)) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25) +
+  scale_y_continuous(labels = comma) +
+  scale_x_continuous(labels = comma)
+
+#visualize friend count with log
+p2 <-
+ggplot(data = fb_df, aes(x = log10(friend_count + 1))) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25) +
+  scale_y_continuous(labels = comma)
+
+#visualize friend count with square root
+p3 <-
+ggplot(data = fb_df, aes(x = sqrt(friend_count))) +
+  do.call(chart_theme_minimal, as.list(chart_format_hist_no_vgrid)) +
+  geom_histogram(colour = "white", fill = primary_color[1],
+                 alpha = 0.3, size = .25) +
+  scale_y_continuous(labels = comma)
+
+grid.arrange(p1, p2, p3, ncol = 1)
+
+#alternate way for log scale P2. Note that the x axis label doesn't reflect log
+p1 + scale_x_log10()
+
+```
+
+###Frequency polygons for friend_count
+Note that sum(..count..) will sum across color, so the percentages displayed are percentages of total users. To plot percentages within each group, you can try y = ..density...
+
+```{r Frequency polygons with manular color and fill scales, message=FALSE, echo=TRUE, warning=FALSE}
+
+
+ggplot(data = filter(fb_df, !is.na(gender)), 
+       aes(x = friend_count)) +
+  do.call(chart_theme_minimal, as.list((chart_format_hist_no_vgrid["fsize"] = 14))) + 
+  geom_histogram(aes(fill = gender),
+                 binwidth = 10,
+                 color = 'white',
+                 alpha = 0.5, size = 0.25) +
+  fillScalegender +
+  scale_x_continuous(labels = comma,
+                     lim = c(0, 1000)) +
+  scale_y_continuous(labels = comma) +
+  theme(legend.position = "right")
+
+# frequency polygon - friend count
+ggplot(data = filter(fb_df, !is.na(gender)), 
+       aes(x = friend_count,
+           y = ..count../sum(..count..))) +
+  do.call(chart_theme_minimal, as.list((chart_format_hist_no_vgrid["fsize"] = 14))) +
+  geom_freqpoly(aes(color = gender, fill = gender),
+                binwidth = 10,
+                alpha = 1, size = 1.5) +
+  colScalegender +
+  #scale_color_brewer(palette = "Set1") +
+  scale_y_continuous(labels = percent) +
+  scale_x_continuous(labels = comma,
+                     lim = c(0, 1000)) +
+  theme(legend.position = "right")
+
+
+```
+
+###Feature usage - Likes males vs females
+```{r likes male vs female, message=FALSE, echo=TRUE, warning=FALSE}
+
+# frequency polygon - www_likes
+p1 <-
+ggplot(data = filter(fb_df, !is.na(gender)), 
+       aes(x = www_likes)) +
+  do.call(chart_theme_minimal, as.list((chart_format_hist_no_vgrid["fsize"] = 14))) +
+  geom_freqpoly(aes(color = gender, fill = gender),
+                #binwidth = 10,
+                alpha = 1, size = .5) +
+  colScalegender +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma) +
+  theme(legend.position = "right")
+
+print(p1)
+
+p1 + scale_x_log10() +
+  ylab("Log10Count")
+
+#Who gets more likes males or females?
+by(fb_df$www_likes, fb_df$gender, sum)
+
+fb_df %>%
+  group_by(gender) %>%
+  summarise(num_www_likes = sum(www_likes),
+            n=n(),
+            likes_per_person = num_www_likes/n()) 
+
+#Ans: Females get more likes overall and average female get more than 3x the # of male likes
+
+#table <- xtable(freq,floating=FALSE)
+#print(table, type = "HTML")
+
+
+```
+
+###Boxplots - friend_count
+```{r Boxplots Friend Count, message=FALSE, echo=TRUE, warning=FALSE}
+
+b1 <-
+ggplot(data = filter(fb_df, !is.na(gender)), 
+       aes(x = gender, y = friend_count)) +
+  geom_boxplot() +
+  do.call(chart_theme_minimal, as.list((chart_format_hist_no_vgrid["fsize"] = 14))) +
+  scale_y_continuous(labels = comma) +
+  xlab("")
+
+print(b1)
+
+#zoom to focus on users having 0-1000 friends
+b1 +
+  coord_cartesian(ylim = c(0, 1000))
+
+#zoom further focus on users having 0-250 friends
+b1 +
+  coord_cartesian(ylim = c(0, 250))
+
+#summary of friend_count by gender
+by(fb_df$friend_count, fb_df$gender, summary)
+
+```
+
+###Logical operators for flag variables
+At times variables may have very sparse data e.g. # of mobile logins. In such cases, you may want to create a variable that just captures whether a given feature was ever used.
+
+```{r Logical operators, message=FALSE, echo=TRUE, warning=FALSE}
+
+#Summary of mobile likes
+summary(fb_df$mobile_likes)
+
+#You can observe that more than 25% of users have zero mobile likes
+summary(fb_df$mobile_likes > 0)
+#More than 35% of users have no mobile likes
+
+#mobile checkin flag variable creation
+fb_df <- fb_df %>%
+  mutate(mobile_checkin = NA) %>%
+  mutate(mobile_checkin = ifelse(mobile_likes >0, 1, 0)) %>%
+  mutate(mobile_checkin = factor(mobile_checkin))
+
+summary(fb_df$mobile_checkin)
+
+#What % of people ever checked in using mobile
+print(sum(fb_df$mobile_checkin == 1) / length(fb_df$mobile_checkin))
+
+```
+
+##Diamonds dataset EDA
+###Diamonds- Basic dataset info
+```{r Diamonds dataframe, message=FALSE, echo=TRUE, warning=FALSE}
+dim(diamonds)
+glimpse(diamonds)
+```
+###Diamonds- EDA
+```{r Diamonds EDA, message=FALSE, echo=TRUE, warning=FALSE}
+ggplot(data = diamonds, aes(x = price)) +
+  geom_histogram(colour = "white", fill = primary_color[1], alpha = 0.4, size = 0.25) +
+  geom_vline(xintercept=mean(diamonds$price), size=0.75, color = "grey") +
+  annotate("text", x = mean(diamonds$price)*1.03, y = 15000, 
+           label = "mean", hjust = 0) +
+  geom_vline(xintercept=median(diamonds$price), size=0.75, color = "grey") +
+  annotate("text", x = median(diamonds$price)*1.03, y = 12000, 
+           label = "median", hjust = 0)
+
+summary(diamonds$price)
+
+#count by price points
+diamonds %>%
+  mutate(price_pnt = ifelse(price < 250, "<250", 
+                            ifelse(price < 500, "<500",
+                                   ifelse(price >= 15000, ">15k", "other")))) %>%
+  group_by(price_pnt) %>%
+  summarise(n = n())
+
+```
+
+##Facebook - Explore two variables
+```{r scatter plots, message=FALSE, echo=TRUE, warning=FALSE}
+
+#scatterplot - relation between age and friend count
+ggplot(data = fb_df, aes(x = age, y = friend_count)) +
+  set_ggplot_theme01 +
+  geom_point(alpha = 1,
+             color = primary_color[1])
+
+#set alpha to 1/20 i.e 20 data points make one solid dot
+ggplot(data = fb_df, aes(x = age, y = friend_count)) +
+  set_ggplot_theme01 +
+  geom_point(alpha = 1/20,
+             color = primary_color[1])
+
+#limit the age from 13 to 90 yrs
+ggplot(data = fb_df, aes(x = age, y = friend_count)) +
+  set_ggplot_theme01 +
+  geom_point(alpha = 1/20,
+             color = primary_color[1]) +
+  xlim(13, 90)
+
+#add jitter to avoid straight vertical lines
+ggplot(data = fb_df, aes(x = age, y = friend_count)) +
+  set_ggplot_theme01 +
+  geom_jitter(alpha = 1/20,
+              color = primary_color[1]) +
+  scale_x_continuous(limits = c(13, 90), breaks = seq(13, 90, 10))
+
+#add square root Y axis to reduce right skew
+#limit the age from 13 to 90 yrs
+ggplot(data = fb_df, aes(x = age, y = friend_count)) +
+  set_ggplot_theme01 +
+  geom_jitter(alpha = 1/20,
+              position = position_jitter(h = 0),
+              color = primary_color[1]) +
+  scale_x_continuous(limits = c(13, 90), breaks = seq(13, 90, 10)) +
+  coord_trans(y = "sqrt")
+
+```
+The square root, x to x^(1/2) = sqrt(x), is a transformation with a
+moderate effect on distribution shape: it is weaker than the logarithm
+and the cube root. It is also used for reducing right skewness, and also
+has the advantage that it can be applied to zero values. Note that the
+square root of an area has the units of a length. It is commonly applied
+to counted data, especially if the values are mostly rather small.
+
+If we add noise to zero we could end up with -ve numbers where sqrt will be imaginary. Set the position parameter equal to position_jitter and pass it a min height of zero.
+
+###Summary metrics on charts
+```{r summary metrics on charts, message=FALSE, warning=FALSE, echo=TRUE}
+
+ggplot(data = fb_df, aes(x = age, y = friend_count)) +
+  set_ggplot_theme01 +
+  geom_jitter(alpha = 1/20,
+              position = position_jitter(h = 0),
+              color = "light grey") +
+  scale_x_continuous(limits = c(13, 90), breaks = seq(13, 90, 10)) +
+  coord_trans(y = "sqrt") +
+  geom_line(aes(color = "Mean"), stat = "summary", fun.y = mean) +
+  geom_line(aes(color = "10% Quantile"), stat = "summary", fun.y = quantile, 
+            probs = 0.1, linetype = 2) +
+  geom_line(aes(color = "90% Quantile"), stat = "summary", fun.y = quantile, 
+            probs = 0.9, linetype = 2) +
+  #scale_color_manual(values=primary_color[1]) +
+  #annotate("text", x=max(fb_df$age)+1, y = mean(fb_df$friend_count), label = "mean", hjust = 0) +
+  theme(legend.position = "right") +
+  guides(colour = guide_legend(override.aes = list(size=1)))
+
+
+#zoom in using coord-cartesian 
+ggplot(data = fb_df, aes(x = age, y = friend_count)) +
+  set_ggplot_theme01 +
+  coord_cartesian(xlim = c(13, 70), ylim = c(0, 1000)) +
+  geom_jitter(alpha = 1/20,
+              position = position_jitter(h = 0),
+              color = "light grey") +
+  #scale_x_continuous(limits = c(13, 90), breaks = seq(13, 90, 10)) +
+  #coord_trans(y = "sqrt") +
+  geom_line(aes(color = "Mean"), stat = "summary", fun.y = mean) +
+  geom_line(aes(color = "10% Quantile"), stat = "summary", fun.y = quantile, 
+            probs = 0.1, linetype = 2) +
+  geom_line(aes(color = "90% Quantile"), stat = "summary", fun.y = quantile, 
+            probs = 0.9, linetype = 2) +
+  #scale_color_manual(values=primary_color[1]) +
+  #annotate("text", x=max(fb_df$age)+1, y = mean(fb_df$friend_count), label = "mean", hjust = 0) +
+  theme(legend.position = "right") +
+  guides(colour = guide_legend(override.aes = list(size=1)))
+
+```
+###Correlation
+A correlation of >0.3 is mild, >0.5 is moderate and >0.7 is pretty strong
+
+```{r Correlation, message=FALSE, warning=FALSE, echo=TRUE}
+
+cor.test(fb_df$age, fb_df$friend_count, method = "pearson")
+
+#alternatively for less verbose code
+with(fb_df, cor.test(age, friend_count, method = "pearson"))
+
+with(filter(fb_df, age<=70), cor.test(age, friend_count, method = "pearson"))
+
+#spearman coeff for monotonic relationships
+with(filter(fb_df, age<=70), cor.test(age, friend_count, method = "spearman"))
+
+```
+
+###Strong correlations
+
+engagement variables all measure essentiall the same thing - engagement. e.g. # of photo uploads, no. of posts etc..
+```{r Strong Correlations, message=FALSE, warning=FALSE, echo=TRUE}
+
+ggplot(data = fb_df, aes(x = www_likes_received, y = likes_received)) +
+  set_ggplot_theme01 +
+  geom_point(position = position_jitter(h=0),
+             color = "light grey",
+             alpha = 1/20) +
+  xlim(0, quantile(fb_df$www_likes_received, 0.95)) +
+  ylim(0, quantile(fb_df$likes_received, 0.95)) +
+  geom_smooth(method = "lm", color = primary_color[1], size = 2) +
+  annotate("text", x = Inf, y = -Inf, label = "sumitbajaj.me",
+           hjust=1.1, vjust=-.5, col="gray", cex=4, alpha = 0.8)
+
+#correlation coeff
+cor.test(fb_df$www_likes_received, fb_df$likes_received, method = "pearson")
+
+```
+
+###More caution with correlation
+```{r Caution with correlation, message=FALSE, warning=FALSE, echo=TRUE}
+#load the mitchel dataset for soil temp study
+#install.packages("alr3")
+library(alr3)
+glimpse(Mitchell)
+
+#Range of the month variable
+range(Mitchell$Month)
+
+ggplot(data = Mitchell, aes(x = Month, y = Temp)) +
+  chart_theme01 +
+  geom_point() +
+  chart_footer+
+  scale_x_continuous(breaks = seq(0, 203, 12))  #increments of 12 months
+
+
+with(Mitchell, cor.test(Month, Temp, method = "pearson"))
+
+#non parametric test
+with(Mitchell, dcor.ttest(Month, Temp))
+
+
+#notice the cyclical patterns with line chart and aspect ratio using coord_fixed (y/x)
+ggplot(data = Mitchell, aes(x = Month, y = Temp)) +
+  chart_theme01 +
+  geom_point() +
+  geom_line(color = color_primary_pal[1], alpha = 0.3, size = 2) +
+  coord_fixed(ratio = 1) +
+  chart_footer +
+  scale_x_continuous(breaks = seq(0, 203, 12))  #increments of 12 months
+
+
+#to compare monthly trends
+ggplot(data = Mitchell, aes(x = Month%%12, y = Temp)) +
+  chart_theme01 + 
+  geom_point(color = color_primary_pal[1], alpha = 0.5, size = 4) +
+  scale_x_continuous(breaks = seq(0, 13, 1)) +
+  chart_footer 
+
+```
+###Noise and smootheming
+```{r Noise and smoothening, message=FALSE, warning=FALSE, echo=TRUE}
+
+pf.fc_by_age <- fb_df %>%
+  filter(age < 71) %>%
+  group_by(age) %>%
+  summarise(friend_count_mean = mean(friend_count),
+            friend_count_median = median(friend_count),
+            n = n())
+
+#plot mean friend count against age (yrs)
+p1 <-
+ggplot(data = pf.fc_by_age, aes(x = age, y = friend_count_mean)) +
+  chart_theme01 +
+  scale_y_continuous(limit = c(0,400)) +
+  scale_x_continuous(limit = c(0, 72)) +
+  geom_line(color = color_primary_pal[1], alpha = 1, size = 1) +
+  geom_smooth(size = 0.1, fill = grey(0.9)) +
+  chart_footer
+
+pf.fc_by_age[15:20,]
+
+
+#mean friend count by age (year.month) to generate an even noisier plot
+pf.fc_by_age_months <- fb_df %>%
+  filter(age < 71) %>%
+  mutate(age_with_months = age + (12 - dob_month)/12) %>%
+  group_by(age_with_months) %>%
+  summarise(friend_count_mean = mean(friend_count),
+            friend_count_median = median(friend_count),
+            n = n())
+
+
+#plot mean friend count against age.month
+p2 <-
+ggplot(data = pf.fc_by_age_months, aes(x = age_with_months, y = friend_count_mean)) +
+  chart_theme01 +
+  scale_y_continuous(limit = c(0,400)) +
+  scale_x_continuous(limit = c(0, 72)) +
+  geom_line(color = color_primary_pal[2], alpha = 1, size = 0.25) +
+  geom_smooth(size = 0.1, fill = grey(0.9)) +
+  chart_footer
+
+#Loess regression to smooth the mean friend count
+p3 <- 
+  fb_df %>%
+  filter(age < 71) %>%
+  ggplot(aes(x = round(age/5)*5, y = friend_count)) +
+  chart_theme01 +
+  geom_line(stat = "summary", fun.y = mean,
+            color = color_primary_pal[3], alpha = 1, size = 1) +
+  scale_x_continuous(limit = c(0, 72)) +
+  coord_cartesian(ylim = c(0, 400)) +
+  geom_smooth(size = 0.1, fill = grey(0.9)) +
+  chart_footer
+  
+grid.arrange(p2, p1, p3, ncol = 1)
+
+```
+
+##More than two variables for EDA
+###Third qualitative variable
+```{r Third qualitative variable, message=FALSE, warning=FALSE, echo=TRUE}
+
+ggplot(data = subset(fb_df, !is.na(gender)), aes(x = age, y = friend_count)) +
+  chart_theme01 +
+  geom_line(stat = "summary", fun.y = mean,
+            aes(color = gender)) +
+  #colScalegender +
+  scale_colour_brewer(palette="Set1") +
+  legend_top +
+  legend_title_hide +
+  legend_size_override() +
+  chart_footer +
+  ggtitle("Mean friend count by age and gender")
+
+#mean friend count by age>genger
+pf.fc_by_age_gender <-
+  fb_df %>%
+  filter(!is.na(gender)) %>%
+  group_by(age, gender) %>%
+  summarise(mean_friend_count = mean(friend_count),
+                          median_friend_count = median(as.numeric(friend_count)),
+                          n = n())
+
+head(pf.fc_by_age_gender, 4)
+
+#median friend count by age for each gender
+ggplot(data = pf.fc_by_age_gender, aes(x = age, y = median_friend_count)) +
+  chart_theme01 +
+  geom_line(aes(color = gender)) +
+  #colScalegender +
+  scale_colour_brewer(palette="Set1") +
+  legend_top +
+  legend_title_hide +
+  legend_size_override() +
+  chart_footer +
+  ggtitle("Median friend count by age and gender")
+```
+
+##Reshape from long to wide format
+```{r Reshape data using Tidyr, message=FALSE, warning=FALSE, echo=TRUE}
+
+#spread to wide format key-value
+pf.fc_by_age_gender_wide <- pf.fc_by_age_gender %>%
+  select(1, 2, 4) %>%
+  spread(gender, median_friend_count) %>%
+  mutate(ratio = male/female)
+
+head(pf.fc_by_age_gender_wide, 3)
+
+#plot ratio of median friends female / male
+ggplot(data = pf.fc_by_age_gender_wide, aes(x = age, y = female/male)) +
+  chart_theme01 +
+  geom_line(color = color_primary_pal[2], alpha = 1, size = 0.75) +
+  coord_cartesian(ylim = c(0, 3)) +
+  geom_hline(yintercept =1, linetype = 2, size = 1, color = color_highlight_pal[1]) +
+  chart_footer
+#note: one possible reason. More growth from newer countries. Initial users more likely to be male.
+
+```
+
+##Add bucketed variables like year joined using cut
+```{r Add more variables like year joined, message=FALSE, warning=FALSE, echo=TRUE}
+#create variable for year joined fb
+fb_df$year_joined = 2014 - ceiling(fb_df$tenure/365)
+
+summary(fb_df$year_joined)
+#looks like most people joined in last 2 years
+
+table(fb_df$year_joined)
+        
+#create bucketed variable for year joined
+fb_df <- fb_df %>%
+  mutate(year_joined_bucket = cut(year_joined, c(2004, 2009, 2011, 2012, 2014)))
+
+table(fb_df$year_joined_bucket)
+
+#plot each year_join bucket for median friend count against age
+ggplot(data = fb_df, aes(x = age, y = friend_count)) +
+  chart_theme01 +
+  chart_footer +
+  geom_line(aes(color = year_joined_bucket),
+            stat = "summary", fun.y = median) +
+  scale_colour_brewer(palette="Set1") +
+  legend_top +
+  legend_size_override()
+
+
+#Plot the grand mean as y intercept
+#plot each year_join bucket for median friend count against age
+ggplot(data = fb_df, aes(x = age, y = friend_count)) +
+  chart_theme01 +
+  chart_footer +
+  geom_line(aes(color = year_joined_bucket),
+            stat = "summary", fun.y = mean) +
+  scale_colour_brewer(palette="Set1") +
+  geom_line(stat = "summary", fun.y = mean, linetype = 2, aes(color = "Grand Mean")) +
+  annotate("text", x = 15, y = mean(fb_df$friend_count)*1.2, label = "Grand Mean") +
+  legend_top +
+  legend_size_override()
+
+
+#Friendships initiated by tenure
+ggplot(data = filter(fb_df, !is.na(tenure), !is.na(friendships_initiated), tenure >1, friendships_initiated >1), 
+       aes(x = tenure, y = friendships_initiated/tenure)) +
+  geom_line(aes(color = year_joined_bucket),
+            stat = "summary", fun.y = mean) +
+  chart_theme01 +
+  chart_footer +
+  legend_top + legend_size_override() 
+
+#It appears that users with higher tenure initiate less friendships  
+
+#Smoothening the tenure - bias variance tradeoff. as we increase the binwidth, the variance goes down and the bias goes up
+ggplot(data = filter(fb_df, !is.na(tenure), !is.na(friendships_initiated), tenure >1, friendships_initiated >1), 
+       aes(x = round(tenure/7)*7, y = friendships_initiated/tenure)) +
+  geom_line(aes(color = year_joined_bucket),
+            stat = "summary", fun.y = mean) +
+  chart_theme01
+
+ggplot(data = filter(fb_df, !is.na(tenure), !is.na(friendships_initiated), tenure >1, friendships_initiated >1), 
+       aes(x = round(tenure/30)*30, y = friendships_initiated/tenure)) +
+  geom_line(aes(color = year_joined_bucket),
+            stat = "summary", fun.y = mean) +
+  chart_theme01
+
+ggplot(data = filter(fb_df, !is.na(tenure), !is.na(friendships_initiated), tenure >1, friendships_initiated >1), 
+       aes(x = round(tenure/90)*90, y = friendships_initiated/tenure)) +
+  geom_line(aes(color = year_joined_bucket),
+            stat = "summary", fun.y = mean, , size = 1) +
+  chart_theme01
+
+
+#using geom_smooth 
+ggplot(data = filter(fb_df, tenure >=1), 
+       aes(x = tenure, y = friendships_initiated/tenure)) +
+  geom_smooth(aes(color = year_joined_bucket)) +
+  chart_theme01 +
+  scale_x_continuous(labels = comma)
+```
+
+##Yogurt purchase data EDA
+```{r Yogurt purchase data EDA, message=FALSE, warning=FALSE, echo=TRUE}
+yo <- read.csv("../data/yogurt.csv", header = T, stringsAsFactors = TRUE, sep = ",")
+head(yo)
+str(yo)
+
+#change id to factor variable from int
+yo$id <- as.factor(yo$id)
+
+#Price histogram
+ggplot(data = yo, aes(x = price)) +
+  chart_theme01 +
+  geom_histogram(binwidth = 1, fill = color_primary_pal[1])
+#the price histogram indicates discreteness
+
+length(unique(yo$price))
+#only 20 unique prices
+
+#new variable for total # of purchases in a transaction
+yo <- yo %>%
+  mutate(all.purchases = strawberry + blueberry	+ pina.colada	+ plain	+ mixed.berry)
+summary(yo$all.purchases)
+
+#histogram of all.purchases
+ggplot(data = yo, aes(x = all.purchases))+
+  chart_theme01 +
+  geom_histogram(fill = color_primary_pal[1], binwidth = 1)
+
+#scatterplot of price vs time
+ggplot(data = yo, aes(x = time, y = price))+
+  chart_theme01 +
+  geom_point(color = color_primary_pal[1], alpha = 0.5)
+
+#the most common prices seem to be increasing over time
+#the scattered lower prices could be due to markdowns or usage of coupons
+
+
+```
+
+#looking at a sample of yogurt households to understand deeper
+```{r sampling yogurt data, message=FALSE, warning=FALSE, echo=TRUE}
+#set the seed for reproducible samples
+set.seed(4230)
+
+#draw 16 households
+sample.ids <- sample(levels(yo$id), 16)
+
+#scatterplot of price vs time
+ggplot(data = filter(yo, id %in% sample.ids), aes(x = time, y = price))+
+  chart_theme01 +
+  geom_point(color = color_primary_pal[1], alpha = 0.5, aes(size = all.purchases)) +
+  geom_line(color = color_highlight_pal[1], size = .5, alpha = 0.8) +
+  legend_top +
+  facet_wrap(~id) +
+  ggtitle("# purchases and price trend over time for 16 random households")
+  
+
+```
+
+##Scatterplot matrices
+```{r scatterplot matrices, message=FALSE, warning=FALSE, echo=TRUE}
+#set the seed for reproducible samples
+set.seed(1836)
+
+#extract columns 2:5 from fb dataframe
+pf_subset <- fb_df[, c(2:5)]
+
+ggpairs(pf_subset[sample.int(nrow(pf_subset), 100), ],
+         params=list(corSize=4, fontsize = 4))
+
+```
+```{r code snippet, message=FALSE, warning=FALSE, echo=TRUE}
+
+```
