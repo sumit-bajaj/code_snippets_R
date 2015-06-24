@@ -1,0 +1,100 @@
+---
+title: "Title"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 9
+    echo: FALSE
+    dpi: 144
+    theme: cerulean
+    toc: yes
+    
+---
+
+
+#Setup
+##Set up packages, chart themes, slack notifications etc
+```{r Set up packages and environment, echo=TRUE, message=FALSE, warning = FALSE, eval=TRUE}
+
+#load packages
+source("../r_config/r_packages_setupv1.R") 
+
+#load custom functions
+source("../r_config/r_functions_repository.R")
+
+#load custom ggplot2 theme functions
+source("../r_config/r_visualization_setupv1.R")
+
+#set default theme for charts
+theme_set(chart_theme_custom_base(fsize = 18, background_grey = 0, vgrid = 1, hgrid = 1)) 
+
+#data table global options
+options(DT.options = list(pageLength = 5, language = list(search = 'Search:')))
+
+datatable(head(iris))
+
+
+#setup slack bot for notifications
+setup_slack(channel_name = "#code_status")
+
+#post a test message
+slackr("Everything setup!")
+
+```
+
+#Sample Chart
+```{r sample chart, echo=TRUE, message=FALSE, warning = FALSE, eval=TRUE}
+
+x <- seq(-4, 6, 0.1)
+mean1 <- 0.00
+mean2 <- 2.47
+dat <- data.frame(x = x, y1 = dnorm(x, mean1, 1), y2 = dnorm(x, mean2, 1))
+
+ggplot(dat, aes(x = x)) +
+  geom_line(aes(y = y1, colour = 'H0 is true'), size = 1.2) +
+  geom_line(aes(y = y2, colour = 'H1 is true'), size = 1.2) +
+  scale_colour_manual(breaks = c("H0 is true", "H1 is true"), values = c("blue", "red")) +
+  
+  geom_area(aes(y = y2, x = ifelse(x > 1.65, x, NA)), fill = 'blue', alpha = 0.3) +
+  geom_area(aes(y = y1, x = ifelse(x > 1.65, x, NA)), fill = 'black') +
+  
+  theme(legend.title = element_blank()) +
+  legend_show(show_title = 0) +
+  
+  chart_watermark(size = 4) +
+  #ggtitle("This is a sample chart title") +
+  labs(x = "x", y = "y") 
+chart_footnote() 
+  
+
+
+```
+
+
+#color palettes
+```{r color palettes}
+
+#tableau_color_pal("tableau20")(20)
+#show_col(colours = c("transparent", "#AEC7E8", "#FF7F0E"))
+
+show_col(colours = color_qualitative_pal)
+show_col(colours = color_highlight_pal)
+show_col(colours = color_primary_pal)
+display.brewer.all()
+display.brewer.pal(n = 9, "Set1")
+display.brewer.pal(n = 9, "Paired")
+display.brewer.pal("Greys", n=9)
+
+
+show_col(tableau_color_pal("tableau20")(20))
+show_col(tableau_color_pal("tableau10")(10))
+show_col(tableau_color_pal("tableau10medium")(10))
+show_col(tableau_color_pal("tableau10light")(10))
+show_col(tableau_color_pal("colorblind10")(10))
+show_col(tableau_color_pal("trafficlight")(10))
+show_col(tableau_color_pal("purplegray12")(12))
+show_col(tableau_color_pal("bluered12")(12))
+show_col(tableau_color_pal("greenorange12")(12))
+show_col(tableau_color_pal("cyclic")(20))
+```
+

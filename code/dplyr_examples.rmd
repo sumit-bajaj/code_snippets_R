@@ -1,0 +1,538 @@
+---
+title: "Dplyr usage examples"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 9
+    dpi: 144
+    theme: cerulean
+    toc: yes
+    
+---
+
+#Useful links
+* http://rpubs.com/justmarkham/dplyr-tutorial
+* http://www.princeton.edu/~mattg/statar/
+* http://rpackages.ianhowson.com/cran/dplyr/
+* http://stat545-ubc.github.io/bit001_dplyr-cheatsheet.html
+
+```{r global_options, include=FALSE}
+
+#http://kbroman.org/knitr_knutshell/pages/Rmarkdown.html
+knitr::opts_chunk$set(fig.width=9, 
+                      fig.height=7, 
+                      fig.path='Figs/',
+                      echo=TRUE, 
+                      warning=FALSE, 
+                      message=FALSE,
+                      include = TRUE, #show figures, FALSE will evaluate code but suppress results
+                      #fig.show="hide", #if you want to hide figures
+                      results = "show"
+                      )
+
+knitr::opts_chunk$set(cache=TRUE)
+
+```
+
+
+
+#Setup
+Set up packages, chart themes, slack notifications etc
+```{r Set up packages and environment, cache=FALSE}
+
+#load packages
+source("../r_config/r_packages_setupv1.R") 
+
+#load custom functions
+source("../r_config/r_functions_repository.R")
+
+#load custom ggplot2 theme functions
+source("../r_config/r_visualization_setupv1.R")
+
+#set default theme for charts
+theme_set(chart_theme_custom_base(fsize = 18, background_grey = 0, vgrid = 1, hgrid = 1)) 
+
+#data table global options
+options(DT.options = list(pageLength = 5, language = list(search = 'Search:')))
+#datatable(head(iris))
+
+#setup slack bot for notifications
+setup_slack(channel_name = "#code_status")
+
+#post a test message
+slackr("Everything setup!")
+
+```
+
+#dplyr functionality
+- Five basic verbs: filter, select, arrange, mutate, summarise (plus group_by)
+- Can work with data stored in databases and data tables
+- Joins: inner join, left join, semi-join, anti-join
+- Window functions for calculating ranking, offsets, and more
+
+
+#Load flights dataset
+```{r load flights data, cache=FALSE, echo=TRUE, message=FALSE, warning = FALSE, eval=TRUE}
+
+
+#load the NY flights data
+library(nycflights13)
+nyflights = tbl_df(flights)
+nyflights
+
+#load the Houston flights data
+library("hflights")
+
+#use tbl_df(local data frame is a wrapper for a df that prints within visible area) to format the df
+flights <- tbl_df(hflights)
+
+#view the number of rows and cols
+dim(flights)
+
+#glimpse the structure
+glimpse(flights)
+
+#view the top few rows
+datatable(head(hflights))
+
+#will only print columns that can be fitted on the screen
+head(flights, n = 3)
+
+```
+
+#Filter - Keep rows matching the specified criteria
+* Command structure for all dplyr verbs
+* first argument is a dataframe
+* return value is also a dataframe
+* nothing is modified in place
+
+```{r dplyr-filter}
+
+#get all flights on January 1
+
+#base R approach: flights[flights$Month == 1 & flights$DayofMonth == 1]
+#dplyr approach below
+#flights %>% filter(Month ==1, DayofMonth ==1)
+#you can use either comma or & for AND condition
+flights %>% filter(Month ==1 & DayofMonth ==1)
+#we can observe that 552 flights met the specified criteria
+
+#filter flights from AA or UA 
+flights %>% filter(UniqueCarrier == "UA" | UniqueCarrier == "AA")
+#we can observe that 5,316 flights were from UA or AA
+
+#same result using the %in% operator
+flights %>% filter(UniqueCarrier %in% c("AA", "UA"))
+```
+
+#Filter - between, slice, sample_n, top_n, distinct
+
+```{r dplyr-filter-additional options}
+# `filter` supports multiple conditions
+nyflights %>% filter(dep_time >= 600 & dep_time <= 605)
+
+# `between` is a concise alternative for determining if numeric values fall in a range
+nyflights %>% filter(between(dep_time, 600, 605))
+
+# `is.na()` can also be used while filtering
+nyflights %>% filter(!is.na(dep_time))
+
+# `slice` filters rows by position
+nyflights %>% slice(1000:1005)
+
+# keep the first 3 rows within each group
+nyflights %>%
+  group_by(month, day) %>%
+  slice(1:3)
+
+# sample 3 rows from each group
+nyflights %>% group_by(month, day) %>% sample_n(size = 3)
+
+# keep 3 rows from each group with the top dep_delay
+nyflights %>% group_by(month, day) %>% top_n(n = 3, dep_delay)
+
+# also sort by dep_delay within each group
+nyflights %>% group_by(month, day) %>% top_n(n=3, dep_delay) %>% arrange(desc(dep_delay))
+
+# unique rows can be identified using `unique()` from base R
+nyflights %>% select(origin, dest) %>% arrange(origin, dest) %>% unique()
+
+# dplyr provides a more efficient alternative `distinct`
+nyflights %>% select(origin, dest) %>% distinct()
+
+```
+
+
+#Select - Choose columns by name
+* Similar syntax to `filter`
+* Just like SELECT in SQL
+
+```{r dplyr-select}
+# base R approach to select DepTime, ArrTime, and FlightNum columns
+flights[, c("DepTime", "ArrTime", "FlightNum")]
+
+#dplyr approach
+flights %>% select(DepTime, ArrTime, FlightNum)
+
+#use colon `:` to select multiple contiguous column, and use `contains` to match columns by name
+flights %>% select(Year:DayofMonth, contains("Taxi"), contains("Delay"))
+
+```
+
+#Select - Rename and other options
+```{r dplyr-select-rename}
+
+#list of columns
+names(nyflights)
+
+#you can use the `-` sign to hide columns
+nyflights %>% select(-month, -day)
+
+#hide a range of columns
+nyflights %>% select( -(dep_time : arr_delay) )
+
+#choose columns using a char vector of col names
+cols <- c("carrier", "flight", "tailnum")
+
+# `one_of` selects columns specified in a char vector
+nyflights %>% select(one_of(cols))
+
+# `select` can also be used to rename cols, though all cols not mentioned are dropped
+nyflights %>% select(tail = tailnum)
+
+# `rename` does the same thing, except all cols not mentioned are kept
+nyflights %>% rename(tail = tailnum)
+
+```
+
+
+#Pipes
+* Similar to UNIX
+* Write commands in the natural order by using the `%>%` operator
+* Pipes improve readability when there are many operations
+* Can be used to replace nesting in R commands outside of `dplyr` too
+
+```{r dplyr-pipes}
+
+#all flights (carrier, delay) where delay is greather than 60
+flights %>% select(UniqueCarrier, DepDelay) %>% filter(DepDelay > 60)
+
+
+#illustration of pipes - two vectors and computation of Euclidian distance between them
+x1 <- 1:5 
+x2 <- 2:6
+(x1-x2)^2 %>% sum() %>% sqrt()
+
+```
+
+#Arrange - Sort rows
+```{r dplyr-arrange}
+#base R approach to select UniqueCarrier and DepDelay columns and sort by DepDelay
+#prefix the sorting variable by a minus `-` sign to indicate DESCENDING order
+flights[order(-flights$DepDelay), c("UniqueCarrier", "DepDelay")]
+
+#dplyr approach to sorting. Use `desc` for descending
+flights %>% select(UniqueCarrier, DepDelay) %>% arrange(desc(UniqueCarrier), DepDelay)
+
+```
+
+#Mutate - Add new columns/ variables
+* Create new columns that are functions of other existing columns
+
+```{r dplyr-mutate}
+#base R approach to create a new variable Speed (in mph)
+flights$Speed <- flights$Distance / flights$AirTime*60
+flights[ , c("Distance", "AirTime", "Speed")] #all rows with the selected columns in the list
+
+#dplyr `mutate` creates a new variable and keeps all existing variables
+flights %>% select(Distance, AirTime) %>% mutate(Speed = Distance/AirTime*60)
+
+# `transmute` only keeps the new variables
+nyflights %>% transmute(speed = distance/air_time*60)
+
+# example dataset with row names
+mtcars %>% head()
+
+# `add_rownames()` turns row names into an explicit variable
+mtcars %>% add_rownames("model") %>% head()
+
+# dplyr no longer prints row names for local data frames
+mtcars %>% tbl_df() %>% head()
+
+```
+
+#Summarise - Group values by variable(s)
+* Useful with data that has been `grouped by` one or more variables
+* `group_by` creates the groups that will be operated upon
+* `summarise` uses the specified aggregation function to summarise each group
+* `summarise_each` allows you to apply the same summary function to multiple columns at once
+* `mutate_each` is also available
+* `tally`
+* `group_size`
+* `n_groups`
+* `ungroup`
+* Helper function `n()` counts the number of rows in a group
+* Helper function `n_distinct(vector)` counts the number of unique items in that vector
+* Grouping can sometimes be useful without summarising
+
+```{r dplyr-group_by-summarise}
+# base R approaches to calculate the average arrival delay to each destination
+head(with(flights, tapply(ArrDelay, Dest, mean, na.rm=TRUE))) #summarise ArrDelay by Dest using "mean"
+#or
+head(aggregate(ArrDelay ~ Dest, flights, mean)) #summarise ArrDelay by Dest using "mean"
+
+#dplyr approach
+flights %>%
+  group_by(Dest) %>%
+  summarise(avg_delay = mean(ArrDelay, na.rm = TRUE)) %>%
+  arrange(desc(avg_delay))
+
+
+#for each carrier, calculate the % of flights cancelled or diverted
+flights %>%
+  group_by(UniqueCarrier) %>%
+  summarise_each(funs(mean(., na.rm = TRUE)),   #the functions to summarise with
+                 Cancelled, Diverted)          #the columns to be reduced to summarized values
+
+
+#for each carrier, calculate the min and max arrival and departure delays
+#when >1 functions and columns are specified, the function name is suffixed to the col name being summarised
+flights %>%
+  group_by(UniqueCarrier) %>%
+  summarise_each(funs(MIN = min(., na.rm=TRUE),  #you can specify the prefix for the summarised columns
+                      max(., na.rm=TRUE)),
+                 matches("Delay"))  #all columnns containing "Delay"
+
+#for each day of the year, count the total # of flights and sort in descending order
+flights %>%
+  group_by(Month, DayofMonth) %>%
+  summarise(flight_count = n()) %>%
+  arrange(desc(flight_count))
+
+#can be simplified by using 'tally' function. Its a wrapper for summarise n()
+flights %>%
+  group_by(Month, DayofMonth) %>%
+  tally(sort = TRUE) #tally sorts in descending order
+  
+#for each destination, count the total # of flights and the # of distinct planes that flew there
+flights %>%
+  group_by(Dest) %>%
+  summarise(flight_count = n(),   #total num of flights
+            plane_count = n_distinct(TailNum)) #unique planes
+
+#tabulate
+#for each destination, show the # of cancelled and not cancelled flights
+flights %>%
+  group_by(Dest) %>%
+  select(Cancelled) %>%
+  table() %>%
+  head()
+
+# tally to count number of flights in each month. alternative to summarise(n = n())
+nyflights %>% group_by(month) %>% tally(sort = TRUE)
+
+# or using count
+nyflights %>% count(month, sort = TRUE)
+
+# you can sum over a specific variable
+nyflights %>% group_by(month) %>% summarise(dist = sum(distance)) %>% head()
+
+# `tally` and `count` have a `wt` parameter for this purpose
+nyflights %>% group_by(month) %>% tally(wt = distance) %>% head()
+nyflights %>% count(month, wt = distance) %>% head()
+
+# `group_size()` returns the counts as a vector
+nyflights %>% group_by(month) %>% group_size() 
+
+# `n_groups()` simply reports the number of groups
+nyflights %>% group_by(month) %>% n_groups()
+
+# group by 2 variables, sumarise, arrange (output is possibly confusing)
+nyflights %>% group_by(month, day) %>% summarise(cnt = n()) %>% arrange(desc(cnt)) %>% print(n = 35)
+
+# `ungroup()` before arranging to arrange across all groups
+nyflights %>% group_by(month, day) %>% summarise(cnt = n()) %>% ungroup() %>% arrange(desc(cnt)) %>% head()
+
+```
+
+#Window Functions
+http://cran.r-project.org/web/packages/dplyr/vignettes/window-functions.html
+
+* Aggregation functions e.g `mean` take n inputs and return 1 value
+* `Window functions` take n inputs and return n values
+  * ranking and ordering functions - `min_rank`
+  * offset functions - `lead`, `lag`
+  * cumulative aggregates - `cummean`
+
+Window functions operate on a partition or "window" of a result set, and return a value for every row in that window. In contrast, nonwindowed functions perform their calculations with respect to every row in the result set. 
+
+Unlike group functions that aggregate result rows, all rows in the table expression are retained.
+
+The values returned are calculated by utilizing values from the sets of rows in that window. The window defines, for each row in the table, a set of rows that is used to compute additional attributes. A window is defined using a window specification (the `OVER` clause) in `SQL`, and is based on 3 main concepts
+* Window partitioning, which forms groups of rows (PARTITION clause)
+* Window ordering, which defines an order or sequence of rows within each partition (ORDER BY clause)
+* Window frames, which are defined relative to each row to further restrict the set of rows (ROWS specification)
+
+```{r dplyr-window functions}
+#for each carrier, calculate which 2 days of the year they had their longest departure delays
+#note- smallest (not largest) value is ranked as 1, so rem to use `desc` to rank by largest value for delays
+flights %>%
+  group_by(UniqueCarrier) %>%
+  select(Month, DayofMonth, DepDelay) %>%
+  filter(min_rank(desc(DepDelay)) <= 2) %>%  #for each carrier get the 2 highest delayed departures
+  arrange(UniqueCarrier, desc(DepDelay))     #sorty by carrier and descending order of delays
+
+
+#simpler version using `top_n` 
+# http://rpackages.ianhowson.com/cran/dplyr/man/top_n.html
+#wrapper that uses `filter` and `min_rank` to select the top(largest) n entries in each group, ordered by wt
+flights %>%
+  group_by(UniqueCarrier) %>%
+  select(Month, DayofMonth, DepDelay) %>%
+  top_n(2, DepDelay) %>%  
+  arrange(UniqueCarrier, desc(DepDelay))
+
+
+#for each month, calculate the # of flights and the change from the prev month
+flights %>%
+  group_by(Year, Month) %>%
+  summarise(flight_count = n()) %>%
+  arrange(Year, Month) %>%
+  mutate(change = flight_count - lag(flight_count, n=1))
+
+#rewrite more simply with the `tally` function
+flights %>%
+  group_by(Year, Month) %>%
+  tally() %>%
+  arrange(Year, Month) %>%
+  mutate(change = n - lag(n))
+
+```
+
+#Other Useful Convenience Functions
+* `sample_n`
+* `sample_frac`
+
+```{r other useful functions}
+#randomly sample a fixed number of rows without replacement
+flights %>% sample_n(size = 3, replace = FALSE)
+
+#randomly sample a fraction(25%) of rows with replacement
+flights %>% sample_frac(size = 0.25, replace=TRUE)
+
+```
+
+
+#Joining(merging) tables
+* left_join
+* right_join
+* inner_join
+* full_join
+* semi_join
+* anti_join
+
+```{r dplyr-joins}
+
+# create two simple data frames
+a <- data_frame(color = c("green", "yellow", "red"), 
+                num = 1:3)
+a
+
+b <- data_frame(color = c("green", "yellow", "pink"),
+                size = c("S", "M", "L"))
+
+b
+
+# only include observations found in both 'a' and 'b' (automatically joins on the variables that appear in both a and b)
+inner_join(a, b)
+
+# include observations in either 'a' or 'b'
+full_join(a, b)
+
+# include all observations found in 'b'
+right_join(a, b)
+
+# right_join(a, b) is identical to left_join(b, a) except for column ordering
+left_join(b, a)
+
+# filter 'a' to only show observations that match 'b'
+semi_join(a, b)
+
+# filter 'a' to only how observations that don't match 'b'
+anti_join(a, b)
+
+# sometimes matching variables don't have identical names
+b <- b %>% rename( col = color)
+b
+
+# specify that the join should occur by matching "color" in 'a' with 'col' in 'b'
+inner_join(a, b, by = c("color" = "col"))
+
+# or
+a %>% inner_join(b, by = c("color" = "col"))
+
+```
+
+
+#Connecting to Databases
+* dplyr can connect to a database as if the data was loaded into a data frame
+* Use the same syntax for local data frames and databases
+* Only generates SELECT statements
+* Currently supports SQLite, PostgreSQL/Redshift, MySQL/MariaDB, BigQuery, MonetDB
+* Example below is based upon an SQLite database containing the hflights data
+http://www3.nd.edu/~steve/computing_with_data/24_dplyr/dplyr.html
+
+```{r dplyr-database connections}
+
+#setup a new sqlite connection. Its just a connection with no data
+my_db <- src_sqlite(path = "my_db.sqlite3", create = TRUE)
+
+
+#This copies the hflights df and creates indices on the day, carrier and tailnumber to aid searching on these variables. 
+#hflights_sqlite is a table object that behaves like a data.frame table but is connected to the SQLite database created on the disk.
+hflights_sqlite <- copy_to(my_db, hflights, temporary = FALSE, 
+                           indexes = list(c("Year", "Month", "DayofMonth"), "UniqueCarrier", "TailNum"))
+
+class(hflights_sqlite)
+
+hflights_sqlite
+
+#query to get departure delays in descending order
+hflights_sqlite %>%
+  select(UniqueCarrier, DepDelay) %>%
+  arrange(desc(DepDelay))
+
+#get the SQL from dplyr
+hflights_sqlite %>%
+  select(UniqueCarrier, DepDelay) %>%
+  arrange(desc(DepDelay)) %>%
+  explain()
+
+# send SQL commands to the database
+tbl(my_db, sql("SELECT * FROM hflights LIMIT 5"))
+
+```
+
+#Creating data frames: data_frame()
+
+`data_frame()` is a better way than data.frame() for creating data frames. Benefits of data_frame():
+
+* You can use previously defined columns to compute new columns.
+* It never coerces column types.
+* It never munges column names.
+* It never adds row names.
+* It only recycles length 1 input.
+* It returns a local data frame (a `tbl_df`).
+
+```{r dplyr-data_frame}
+
+# `data_frame()` example
+data_frame(a = 1:6, b = a*2, c = "string", "d+e" = 1) %>% glimpse()
+
+# data.frame() example
+data.frame(a = 1:6, c = 'string', 'd+e' = 1) %>% glimpse()
+# notice that variable `c` has been coerced to a `factor`
+
+```
+
+

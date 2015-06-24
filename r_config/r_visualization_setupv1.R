@@ -5,7 +5,7 @@
 color_primary_pal = c("#1A75CF", "#003896", "#6CABE7")
 color_highlight_pal = c("#F47B20", "#FDBB30", "#337321", "#61BF1A")
 color_fill_selective_pal = c("#D9D9D9", "#1A75CF")
-color_qualitative_pal = c("#1A75CF", "#d62d20", "#ffa700", "#008744", "#d62d20", "#ffa700", "#008744")
+color_qualitative_pal = c("#1A75CF",  "#ffa700", "#d62d20", "#008744")
 
 #Default font size for charts
 chart.theme.size = 14
@@ -54,7 +54,7 @@ chart_theme_custom_base <- function(fsize = chart.theme.size,
   update_geom_defaults(geom = "point", list(colour = color_primary_pal[1]))
   update_geom_defaults(geom = "jitter", list(colour = color_primary_pal[1]))
   update_geom_defaults(geom = "line", list(colour = color_primary_pal[1], size=chart.line.size))
-  update_geom_defaults(geom = "histogram", list(fill = color_primary_pal[1], colour = color.background, size = 0.25))
+  update_geom_defaults(geom = "histogram", list(fill = color_primary_pal[1], colour = "transparent", size = 0.25))
   
   #start construction of the custom theme
   theme_minimal(chart.theme.size) +
@@ -87,23 +87,23 @@ chart_theme_custom_base <- function(fsize = chart.theme.size,
     legend.text = element_text(size=fsize*0.8,color=color.axis.text),
       
     #Format chart title 
-    plot.title=element_text(color=color.title, size=fsize*1.2, vjust=1.25, face = "bold"),
+    plot.title=element_text(color=color.title, size=fsize*1.2, vjust=1.25, face = "plain"),
     
     #Format axis labels, tick marks, text etc.
     #theme(axis.line.x = element_line(colour = color.grid.major)) +
     #theme(axis.ticks = element_line(colour = color.grid.major)) +
     axis.ticks = element_blank(),
-    axis.title.x=element_text(size=fsize,color=color.axis.title, vjust=0),
-    axis.title.y=element_text(size=fsize,color=color.axis.title, vjust=1.25),
+    
+    axis.title.x=element_text(size=fsize,color=color.axis.title, vjust=0, face = "plain"),
+    axis.title.y=element_text(size=fsize,color=color.axis.title, vjust=1.25, face = "plain"),
+    
     axis.text.x=element_text(size=fsize*0.8,color=color.axis.text),
     axis.text.y=element_text(size=fsize*0.8,color=color.axis.text),
       
       
     #Plot margins
     #around entire plot (unit with the sizes of the top, right, bottom, and left margins)
-    plot.margin = unit(c(1.35, 2.35, 1.5, 0.5), "cm"),
-    
-    complete = TRUE)
+    plot.margin = unit(c(1.35, 2.35, 1.5, 0.5), "cm"), complete = TRUE)
 
 }
   

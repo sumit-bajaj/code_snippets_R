@@ -15,6 +15,7 @@ packages = list("scales",
                 "tidyr",
                 "RColorBrewer",
                 "knitr",
+                "rmarkdown",
                 "htmlTable",
                 "grid",
                 "xtable",
@@ -24,7 +25,9 @@ packages = list("scales",
                 "corrplot",
                 "ggplot2",
                 "ggthemes",
-                "dplyr")
+                "dplyr",
+                "DT",
+                "slackr")
 
 # check for installed packages, install missing ones and load the ones specified in "packages"
 for (package in packages){
@@ -36,5 +39,4 @@ for (package in packages){
 }
 
 #Update all installed packages
-update.packages(checkBuilt=TRUE, ask=FALSE,
-                repos="http://cran.rstudio.com/")
+#update.packages(checkBuilt=TRUE, ask=FALSE, repos="http://cran.rstudio.com/")
