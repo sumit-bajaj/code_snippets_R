@@ -1,0 +1,493 @@
+---
+title: "Cohort Analysis"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 9
+    dpi: 144
+    theme: cerulean
+    toc: yes
+    
+---
+
+
+
+```{r global_options, include=FALSE}
+
+#http://kbroman.org/knitr_knutshell/pages/Rmarkdown.html
+knitr::opts_chunk$set(fig.width=9, 
+                      fig.height=7, 
+                      fig.path='Figs/',
+                      echo=TRUE, 
+                      warning=FALSE, 
+                      message=FALSE,
+                      include = TRUE, #show figures, FALSE will evaluate code but suppress results
+                      #fig.show="hide", #if you want to hide figures
+                      results = "show"
+                      )
+
+knitr::opts_chunk$set(cache=TRUE)
+
+```
+
+
+
+#Setup
+Set up packages, chart themes, slack notifications etc
+```{r Set up packages and environment, include=FALSE, cache=FALSE}
+
+#load packages
+source("../../r_config/r_packages_setupv1.R") 
+
+#load custom functions
+source("../../r_config/r_functions_repository.R")
+
+#load custom ggplot2 theme functions
+source("../../r_config/r_visualization_setupv1.R")
+
+#set default theme for charts
+theme_set(chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1)) 
+
+#data table global options
+options(DT.options = list(pageLength = 5, language = list(search = 'Search:')))
+#datatable(head(iris))
+
+#setup slack bot for notifications
+setup_slack(token_path = "../../../api_tokens/api_tokens - list.csv", channel_name = "#code_status")
+
+#post a test message
+slackr("Everything setup!")
+
+```
+
+#Load user and event data
+```{r load user and event data, cache=FALSE}
+
+#load the user data
+user <- read_csv("../../data/user_event/mode_users.csv", 
+                 col_types = list(created_at = col_datetime(),
+                                  activated_at = col_datetime()) )
+user <-tbl_df(user)
+
+#load the event data
+event <- read_csv("../../data/user_event/mode_user_events.csv", 
+                 col_types = list(occurred_at = col_datetime())) 
+event <- tbl_df(event)
+
+
+#view the number of rows and cols
+dim(user)
+dim(event)
+
+#glimpse the structure
+glimpse(user)
+glimpse(event)
+
+#view the top few rows
+datatable(head(user))
+datatable(head(event))
+
+```
+
+#Subset User and Event dataframes
+```{r cohort data - by week, cache=FALSE}
+
+#keep only required columns in user and event dataframes
+user <-
+  user %>%
+  select(user_id,
+         activated_at,
+         state,
+         language) 
+
+event <-
+  event %>%
+  select(user_id,
+         event_name,
+         occurred_at,
+         device,
+         location)
+
+
+
+```
+
+
+#Cohort by activation week
+```{r cohort by activation week, cache=FALSE}
+
+#build the cohort dataframe
+cohort_df <-
+  user %>%
+  #only keep users that were activated May 1 2014 onwards
+  filter(!is.na(activated_at) & activated_at >= '2014-05-01') %>%
+
+  #get the week starting date as cohort
+  #mutate(cohort = floor_date(activated_at, "week") + days(1)  ) %>%  #to make the week start on Monday
+  mutate(cohort = floor_date(activated_at, "week") ) %>% 
+  
+  #join user activity(events table)
+  inner_join(event,  by = c("user_id" = "user_id")) %>%
+  
+  #create column to store diff in weeks from activation date for each event/activity
+  mutate(period_age = floor(day( seconds_to_period(occurred_at - activated_at))/7) ) %>%
+  
+  group_by(cohort) %>%
+  #for each cohort calculate the longest observation window
+  mutate(cutoff_age = max(period_age)) %>%
+  group_by(cohort, cutoff_age, period_age) %>% 
+  
+  #count the no. of users with activity in each observation time point
+  summarise(tally = n_distinct(user_id)) %>%
+  
+  #store the starting no. of users in the cohort
+  mutate(first_period = max(tally)) %>%
+  
+  #compute retention rate for each time point
+  mutate(retention = tally/first_period) %>%
+  ungroup() %>%
+  arrange(cohort, cutoff_age, period_age)
+
+#change layout to wide view
+cohort_visual_df <-
+cohort_df %>%
+  select(cohort, first_period, period_age, retention) %>%
+  mutate(retention = round(retention, digits = 2)) %>%
+  spread(period_age, retention) %>%
+  arrange(cohort)
+
+datatable(cohort_visual_df)
+
+
+```
+
+
+
+##Line chart
+```{r week-cohort line charts}
+
+cohort_df %>%
+  filter(period_age >= 0) %>%
+ggplot(aes(x = period_age, y = retention)) +
+  geom_line(alpha = 0.5, size = 0.5, aes(group = cohort)) +
+  scale_y_continuous(labels = percent, limits = c(0,1)) +
+  scale_x_discrete() +
+  labs(x="Weeks after signup ", y = "Retention rate") +
+  chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1) +
+  legend_show()
+
+```
+
+##Heatmap
+```{r week-cohort heatmap}
+
+#cols = colorRampPalette(rev(brewer.pal(11, "RdYlGn")), space="Lab")
+cols = colorRampPalette((brewer.pal(7, "RdYlGn")), space="Lab")
+
+cohort_df %>%
+  filter(period_age > 0) %>%
+  #mutate(cohort = reorder(cohort, first_period)) %>%
+ggplot(aes(x = period_age, y = cohort  )) +
+  geom_tile(color = "white", size = 0.5, alpha = 0.8, aes(fill = retention)) +
+  scale_fill_gradientn(colours = cols(5)) +
+  geom_text(color = "black", size = 3.5, aes(x = period_age, y = cohort, label = sprintf("%1.0f%%", 100*retention) )) +
+  geom_text(data = filter(cohort_df, period_age <1), color = "dark green", size = 4, fontface= "bold",
+            aes(x = period_age, y = cohort, label = tally, hjust = 1)) +
+  scale_y_datetime(breaks = date_breaks("1 week"), labels = date_format("%b - %d")) +
+  expand_limits(x = -1) + #to accomodate the week0 text labels
+  scale_x_discrete(limits = seq(1, 17, 1)) +
+  labs(x="Retention rate by weeks after signup ", y = "Signup week") +
+  chart_theme_custom_base(fsize = 14, vgrid = 0, hgrid = 0, font_family = "") +
+  theme(axis.text.y=element_text(vjust = 1))
+
+```
+
+
+
+#Cohort by user language
+```{r language cohort, cache=FALSE}
+
+#build the cohort dataframe
+cohort_df <-
+  user %>%
+  #only keep users that were activated May 1 2014 onwards
+  filter(!is.na(activated_at) & activated_at >= '2014-05-01') %>%
+  
+  #set the user language as cohort
+  mutate(cohort = language) %>% 
+  
+  #join user activity(events table)
+  inner_join(event, by = c("user_id" = "user_id")) %>%
+  
+  #create column to store diff in weeks from activation date for each event/activity
+  mutate(period_age = floor(day( seconds_to_period(occurred_at - activated_at))/7) ) %>%
+  
+  group_by(cohort) %>%
+  
+  #for each cohort calculate the longest observation window
+  mutate(cutoff_age = max(period_age)) %>%
+  group_by(cohort, cutoff_age, period_age) %>% 
+  
+  #count the no. of users with activity in each observation time point
+  summarise(tally = n_distinct(user_id)) %>%
+  
+  #store the starting no. of users in the cohort
+  mutate(first_period = max(tally)) %>%
+  #compute retention rate for each time point
+  mutate(retention = tally/first_period) %>%
+  ungroup() %>%
+  arrange(cohort, cutoff_age, period_age)
+
+#change layout
+cohort_visual_df <-
+cohort_df %>%
+  select(cohort, first_period, period_age, retention) %>%
+  mutate(retention = round(retention, digits = 2)) %>%
+  spread(period_age, retention) %>%
+  arrange(cohort)
+
+datatable(cohort_visual_df)
+
+```
+
+##Line chart
+```{r language-cohort line charts}
+
+cohort_df %>%
+  filter(period_age >= 0) %>%
+ggplot(aes(x = period_age, y = retention)) +
+  geom_line(alpha = 0.8, size = 0.5, aes(group = cohort, color = cohort)) +
+  
+  scale_color_manual(values = tableau_color_pal("tableau20")(20)) +
+  
+  scale_y_continuous(labels = percent, limits = c(0,1)) +
+  scale_x_discrete() +
+  labs(x="Weeks after signup ", y = "Retention rate") +
+  chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1) +
+  legend_show(position = "right", show_title = 0) +
+  legend_size(symbol_size = 1)
+
+```
+
+##Heatmap
+```{r language-cohort heatmap}
+
+#cols = colorRampPalette(rev(brewer.pal(11, "RdYlGn")), space="Lab")
+cols = colorRampPalette((brewer.pal(7, "RdYlGn")), space="Lab")
+
+cohort_df %>%
+  filter(period_age > 0) %>%
+  mutate(cohort = reorder(cohort, first_period)) %>%
+ggplot(aes(x = period_age, y = cohort  )) +
+  geom_tile(color = "white", size = 0.5, alpha = 0.8, aes(fill = retention)) +
+  scale_fill_gradientn(colours = cols(5)) +
+  geom_text(color = "black", size = 3.5, aes(x = period_age, y = cohort, label = sprintf("%1.0f%%", 100*retention) )) +
+  geom_text(data = filter(cohort_df, period_age <1), color = "dark green", size = 4, fontface= "bold",
+            aes(x = period_age, y = cohort, label = tally, hjust = 1)) +
+  
+  expand_limits(x = -1) + #to accomodate the week0 text labels
+  scale_x_discrete(limits = seq(1, 17, 1)) +
+  labs(x="Retention rate by weeks after signup ", y = "Language") +
+  chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 0, hgrid = 0) 
+
+```
+
+
+#Cohort by user device(used for signup)
+```{r device cohort, cache=FALSE}
+
+#see the different status codes. We are looking for signup completion
+freq_dist(event, event_name) %>% print(n = 50)
+
+#get list of users who completed signup
+users_signed_up <-
+  event %>%
+  filter(event_name == "complete_signup") %>%
+  #set the user language as cohort
+  mutate(cohort = device) %>%
+  filter(!is.na(cohort)) %>%
+  select(user_id, cohort)
+
+#build the cohort dataframe
+cohort_df <-
+  user %>%
+  #only keep users that were activated May 1 2014 onwards
+  filter(!is.na(activated_at) & activated_at >= '2014-05-01') %>%
+  
+  #join users who competed sign up 
+  inner_join(users_signed_up, by = c("user_id" = "user_id")) %>%
+  #join user activity(events table)
+  inner_join(event, by = c("user_id" = "user_id")) %>%
+  
+  #create column to store diff in weeks from activation date for each event/activity
+  mutate(period_age = floor(day( seconds_to_period(occurred_at - activated_at))/7) ) %>%
+  
+  group_by(cohort) %>%
+  
+  #for each cohort calculate the longest observation window
+  mutate(cutoff_age = max(period_age)) %>%
+  group_by(cohort, cutoff_age, period_age) %>% 
+  
+  #count the no. of users with activity in each observation time point
+  summarise(tally = n_distinct(user_id)) %>%
+  
+  #store the starting no. of users in the cohort
+  mutate(first_period = max(tally)) %>%
+  #compute retention rate for each time point
+  mutate(retention = tally/first_period) %>%
+  ungroup() %>%
+  arrange(cohort, cutoff_age, period_age)
+
+#change layout
+cohort_visual_df <-
+cohort_df %>%
+  select(cohort, first_period, period_age, retention) %>%
+  mutate(retention = round(retention, digits = 2)) %>%
+  spread(period_age, retention) %>%
+  arrange(desc(first_period))
+
+datatable(cohort_visual_df)
+
+```
+
+
+##Line chart
+```{r device-cohort line charts}
+
+cohort_df %>%
+  filter(period_age >= 0) %>%
+ggplot(aes(x = period_age, y = retention)) +
+  geom_line(alpha = 0.8, size = 0.5, aes(group = cohort, color = cohort)) +
+  
+  #scale_color_manual(values = tableau_color_pal("tableau20")(20)) +
+  
+  scale_y_continuous(labels = percent, limits = c(0,1)) +
+  scale_x_discrete() +
+  labs(x="Weeks after signup ", y = "Retention rate") +
+  chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1, mhgrid = 1) +
+  legend_show(position = "right", show_title = 0) +
+  legend_size(symbol_size = 1)
+
+```
+
+##Heatmap
+```{r device-cohort heatmap}
+
+#cols = colorRampPalette(rev(brewer.pal(11, "RdYlGn")), space="Lab")
+cols = colorRampPalette((brewer.pal(7, "RdYlGn")), space="Lab")
+blues = brewer.pal(9, "Blues")
+
+
+cohort_df %>%
+  filter(period_age > 0) %>%
+  mutate(cohort = reorder(cohort, first_period)) %>%
+ggplot(aes(x = period_age, y = cohort  )) +
+  geom_tile(color = "white", size = 0.5, alpha = 0.8, aes(fill = retention)) +
+  scale_fill_gradientn(colours = cols(5)) +
+  geom_text(color = "black", size = 3, aes(x = period_age, y = cohort, label = sprintf("%1.0f%%", 100*retention) )) +
+  geom_text(data = filter(cohort_df, period_age <1), color = "dark green", size = 4, fontface= "bold",
+            aes(x = period_age, y = cohort, label = tally, hjust = 1)) +
+  
+  expand_limits(x = -1) + #to accomodate the week0 text labels
+  scale_x_discrete(limits = seq(1, 17, 1)) +
+  labs(x="Retention rate by weeks after signup ", y = "Device used for signup") +
+  chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 0, hgrid = 0) 
+
+```
+
+
+#Layer cake chart
+```{r build df for layer cake chart, cache=FALSE}
+
+#build the cohort dataframe
+cohort_layer_df <-
+  user %>%
+  #only keep users that were activated May 1 2014 onwards
+  filter(!is.na(activated_at) & activated_at >= '2014-05-01') %>%
+
+  #get the week starting date as cohort
+  #mutate(cohort = floor_date(activated_at, "week") + days(1)  ) %>%  #to make the week start on Monday
+  mutate(cohort = floor_date(activated_at, "week") ) %>% 
+  
+  #join user activity(events table)
+  inner_join(event,  by = c("user_id" = "user_id")) %>%
+  
+  #create column to store diff in weeks from activation date for each event/activity
+  mutate(period_age = floor(day( seconds_to_period(occurred_at - activated_at))/7) ) %>%
+  mutate(week = floor_date(occurred_at, "week" )) %>%
+  #group_by(cohort) %>%
+  #for each cohort calculate the longest observation window
+  #mutate(cutoff_age = max(period_age)) %>%
+  #group_by(cohort, cutoff_age, period_age) %>% 
+  group_by(cohort, week) %>% 
+  #count the no. of users with activity in each observation time point
+  summarise(tally = n_distinct(user_id)) 
+  
+
+#change layout to wide view
+cohort_layer_visual_df <-
+cohort_layer_df %>%
+  spread(week, tally) %>%
+  arrange(cohort)
+
+datatable(cohort_layer_visual_df)
+
+#build the layered cohort chart
+# setup the color palette
+blues = colorRampPalette((brewer.pal(5, "Blues")), space="Lab")
+
+cohort_layer_visual_df %>%
+  gather(week, tally, -cohort) %>%
+  mutate(tally=replace(tally, is.na(tally), 0)) %>%
+  mutate(week = ymd(week)) %>%
+  filter(week < "2014-08-30") %>%
+  mutate(cohort = as.factor(cohort)) %>%
+ggplot(aes(x = week, y = tally,  fill = cohort, group = cohort)) +
+  geom_area(color = "white", size = 0.01, aes(fill = cohort), alpha = 1) +
+  chart_theme_custom_base(mhgrid = 1, mvgrid = 1) +
+  legend_show(position = "right", show_title = 0, size_label_font = 10) +
+  scale_x_datetime() +
+  scale_fill_manual(values = blues(19), guide = guide_legend(reverse = TRUE)) +
+  labs(x="Weeks", y = "Number of users active in a week") 
+
+```
+
+#Useful links
+* http://blog.modeanalytics.com/cohort-analysis-helps-look-ahead/
+* http://cran.r-project.org/web/packages/lubridate/vignettes/lubridate.html
+* http://stackoverflow.com/questions/27312292/converting-seconds-to-days-hoursminutesseconds-in-r
+* https://jonkimanalyze.wordpress.com/2014/03/25/ggplot2-time-series-axis-control-breaks-label-limitshttpsjonkimanalyze-wordpress-comwp-adminedit-phpinline-edit/
+* https://gist.github.com/dsparks/3710171
+* http://bl.ocks.org/tyokota/3d83d9c039f1ccb06d72
+* https://benjaminlmoore.wordpress.com/2015/04/09/recreating-the-vaccination-heatmaps-in-r/
+* http://www.statmethods.net/input/dates.html
+* http://analyzecore.com/2014/05/31/cohort-analysis-in-r-layer-cake-graph/
+* http://stackoverflow.com/questions/14033342/reorder-a-factor-by-a-numeric-variable
+
+
+#Test area
+```{r scrap}
+
+d1 <- ymd_hms("2014-06-01 13:35:52")
+d1
+d2 <- ymd_hms("2014-06-03 13:35:52")
+d2
+d1 - d2
+
+ratio <- .51
+sprintf("%1.0f%%", 100*ratio)
+
+col_pal = brewer.pal(3, "Set2")
+
+#display.brewer.all() #RdYIGn
+# View 5 colors for the Set2 palette
+display.brewer.pal(7,"RdYlGn")
+col_pal = brewer.pal(7, "RdYlGn")
+col_pal[1]
+
+display.brewer.pal(9,"Blues")
+blues = brewer.pal(9, "Blues")
+col_pal[1]
+
+```
+

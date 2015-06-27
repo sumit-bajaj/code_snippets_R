@@ -27,7 +27,9 @@ packages = list("scales",
                 "ggthemes",
                 "dplyr",
                 "DT",
-                "slackr")
+                "slackr",
+                "showtext",
+                "extrafont")
 
 # check for installed packages, install missing ones and load the ones specified in "packages"
 for (package in packages){

@@ -11,10 +11,13 @@ output:
 ---
 
 #Useful links
+* http://cran.r-project.org/web/packages/dplyr/vignettes/
+* http://bit.ly/wrangling-webinar
 * http://rpubs.com/justmarkham/dplyr-tutorial
 * http://www.princeton.edu/~mattg/statar/
 * http://rpackages.ianhowson.com/cran/dplyr/
 * http://stat545-ubc.github.io/bit001_dplyr-cheatsheet.html
+* http://stackoverflow.com/questions/28222876/passing-column-name-as-parameter-to-function-in-r-language-dplyr
 
 ```{r global_options, include=FALSE}
 
@@ -41,13 +44,13 @@ Set up packages, chart themes, slack notifications etc
 ```{r Set up packages and environment, cache=FALSE}
 
 #load packages
-source("../r_config/r_packages_setupv1.R") 
+source("../../r_config/r_packages_setupv1.R") 
 
 #load custom functions
-source("../r_config/r_functions_repository.R")
+source("../../r_config/r_functions_repository.R")
 
 #load custom ggplot2 theme functions
-source("../r_config/r_visualization_setupv1.R")
+source("../../r_config/r_visualization_setupv1.R")
 
 #set default theme for charts
 theme_set(chart_theme_custom_base(fsize = 18, background_grey = 0, vgrid = 1, hgrid = 1)) 
@@ -57,7 +60,7 @@ options(DT.options = list(pageLength = 5, language = list(search = 'Search:')))
 #datatable(head(iris))
 
 #setup slack bot for notifications
-setup_slack(channel_name = "#code_status")
+setup_slack(token_path = "../../../api_tokens/api_tokens - list.csv", channel_name = "#code_status")
 
 #post a test message
 slackr("Everything setup!")
@@ -356,8 +359,8 @@ nyflights %>% group_by(month, day) %>% summarise(cnt = n()) %>% ungroup() %>% ar
 ```
 
 #Window Functions
-http://cran.r-project.org/web/packages/dplyr/vignettes/window-functions.html
-
+* http://cran.r-project.org/web/packages/dplyr/vignettes/window-functions.html
+* https://danieljhocking.wordpress.com/2014/12/03/lags-and-moving-means-in-dplyr/
 * Aggregation functions e.g `mean` take n inputs and return 1 value
 * `Window functions` take n inputs and return n values
   * ranking and ordering functions - `min_rank`
@@ -430,6 +433,9 @@ flights %>% sample_frac(size = 0.25, replace=TRUE)
 * full_join
 * semi_join
 * anti_join
+* Mutating joins
+* Filtering joins
+* Set operations
 
 ```{r dplyr-joins}
 
@@ -471,6 +477,49 @@ inner_join(a, b, by = c("color" = "col"))
 # or
 a %>% inner_join(b, by = c("color" = "col"))
 
+# Mutating Joins - Combine variables from multiple tables
+flights2 <- nyflights %>% select(year:day, hour, origin, dest, tailnum, carrier)
+flights2 %>% head(2)
+airlines %>% head(2)
+
+# left join by carrier
+flights2 %>% left_join(airlines) %>% head(5)
+
+# controlling how the tables are matched
+weather %>% head(3)
+
+# by default dplyr will use all common variables (a natural join)
+flights2 %>% left_join(weather) %>% head(3)
+
+# by a specified char vector (list of cols)
+# note that the year columns are disambiguated with a suffix
+flights2 %>%  left_join(planes, by =  "tailnum") %>% head(3)
+
+# a named char vector
+airports %>% head(2)
+flights2 %>% left_join(airports, by = c("dest" = "faa")) %>% head(3)
+flights2 %>% left_join(airports, by = c("origin" = "faa")) %>% head(3)
+
+
+# set operations
+# `intersect(x, y)`: return only observations in both x and y
+df1 <- data_frame(x = 1:2, y = c(1L, 1L))
+df1
+
+df2 <- data_frame(x = 1:2, y = 1:2)
+df2
+
+# Intersection
+intersect(df1, df2)
+
+# Union
+union(df1, df2)
+
+# set difference - records in df1 but not in df2
+setdiff(df1, df2)
+
+setdiff(df2, df1)
+
 ```
 
 
@@ -480,7 +529,7 @@ a %>% inner_join(b, by = c("color" = "col"))
 * Only generates SELECT statements
 * Currently supports SQLite, PostgreSQL/Redshift, MySQL/MariaDB, BigQuery, MonetDB
 * Example below is based upon an SQLite database containing the hflights data
-http://www3.nd.edu/~steve/computing_with_data/24_dplyr/dplyr.html
+* ref: http://www3.nd.edu/~steve/computing_with_data/24_dplyr/dplyr.html
 
 ```{r dplyr-database connections}
 

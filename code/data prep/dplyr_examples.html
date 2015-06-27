@@ -93,6 +93,8 @@ img {
 <div id="useful-links" class="section level1">
 <h1>Useful links</h1>
 <ul>
+<li><a href="http://cran.r-project.org/web/packages/dplyr/vignettes/" class="uri">http://cran.r-project.org/web/packages/dplyr/vignettes/</a></li>
+<li><a href="http://bit.ly/wrangling-webinar" class="uri">http://bit.ly/wrangling-webinar</a></li>
 <li><a href="http://rpubs.com/justmarkham/dplyr-tutorial" class="uri">http://rpubs.com/justmarkham/dplyr-tutorial</a></li>
 <li><a href="http://www.princeton.edu/~mattg/statar/" class="uri">http://www.princeton.edu/~mattg/statar/</a></li>
 <li><a href="http://rpackages.ianhowson.com/cran/dplyr/" class="uri">http://rpackages.ianhowson.com/cran/dplyr/</a></li>
@@ -103,13 +105,13 @@ img {
 <h1>Setup</h1>
 <p>Set up packages, chart themes, slack notifications etc</p>
 <pre class="r"><code>#load packages
-source(&quot;../r_config/r_packages_setupv1.R&quot;) 
+source(&quot;../../r_config/r_packages_setupv1.R&quot;) 
 
 #load custom functions
-source(&quot;../r_config/r_functions_repository.R&quot;)
+source(&quot;../../r_config/r_functions_repository.R&quot;)
 
 #load custom ggplot2 theme functions
-source(&quot;../r_config/r_visualization_setupv1.R&quot;)
+source(&quot;../../r_config/r_visualization_setupv1.R&quot;)
 
 #set default theme for charts
 theme_set(chart_theme_custom_base(fsize = 18, background_grey = 0, vgrid = 1, hgrid = 1)) 
@@ -119,7 +121,7 @@ options(DT.options = list(pageLength = 5, language = list(search = 'Search:')))
 #datatable(head(iris))
 
 #setup slack bot for notifications
-setup_slack(channel_name = &quot;#code_status&quot;)
+setup_slack(token_path = &quot;../../../api_tokens/api_tokens - list.csv&quot;, channel_name = &quot;#code_status&quot;)
 
 #post a test message
 slackr(&quot;Everything setup!&quot;)</code></pre>
@@ -191,8 +193,8 @@ glimpse(flights)</code></pre>
 ## $ Diverted          (int) 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,...</code></pre>
 <pre class="r"><code>#view the top few rows
 datatable(head(hflights))</code></pre>
-<p><div id="htmlwidget-9068" style="width:100%;height:auto;" class="datatables"></div>
-<script type="application/json" data-for="htmlwidget-9068">{"x":{"data":[["5424","5425","5426","5427","5428","5429"],[2011,2011,2011,2011,2011,2011],[1,1,1,1,1,1],[1,2,3,4,5,6],[6,7,1,2,3,4],[1400,1401,1352,1403,1405,1359],[1500,1501,1502,1513,1507,1503],["AA","AA","AA","AA","AA","AA"],[428,428,428,428,428,428],["N576AA","N557AA","N541AA","N403AA","N492AA","N262AA"],[60,60,70,70,62,64],[40,45,48,39,44,45],[-10,-9,-8,3,-3,-7],[0,1,-8,3,5,-1],["IAH","IAH","IAH","IAH","IAH","IAH"],["DFW","DFW","DFW","DFW","DFW","DFW"],[224,224,224,224,224,224],[7,6,5,9,9,6],[13,9,17,22,9,13],[0,0,0,0,0,0],["","","","","",""],[0,0,0,0,0,0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> </th>\n      <th>Year</th>\n      <th>Month</th>\n      <th>DayofMonth</th>\n      <th>DayOfWeek</th>\n      <th>DepTime</th>\n      <th>ArrTime</th>\n      <th>UniqueCarrier</th>\n      <th>FlightNum</th>\n      <th>TailNum</th>\n      <th>ActualElapsedTime</th>\n      <th>AirTime</th>\n      <th>ArrDelay</th>\n      <th>DepDelay</th>\n      <th>Origin</th>\n      <th>Dest</th>\n      <th>Distance</th>\n      <th>TaxiIn</th>\n      <th>TaxiOut</th>\n      <th>Cancelled</th>\n      <th>CancellationCode</th>\n      <th>Diverted</th>\n    </tr>\n  </thead>\n</table>","options":{"pageLength":5,"language":{"search":"Search:"},"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6,8,10,11,12,13,16,17,18,19,21]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]},"callback":null,"filter":"none"},"evals":[]}</script></p>
+<p><div id="htmlwidget-9650" style="width:100%;height:auto;" class="datatables"></div>
+<script type="application/json" data-for="htmlwidget-9650">{"x":{"data":[["5424","5425","5426","5427","5428","5429"],[2011,2011,2011,2011,2011,2011],[1,1,1,1,1,1],[1,2,3,4,5,6],[6,7,1,2,3,4],[1400,1401,1352,1403,1405,1359],[1500,1501,1502,1513,1507,1503],["AA","AA","AA","AA","AA","AA"],[428,428,428,428,428,428],["N576AA","N557AA","N541AA","N403AA","N492AA","N262AA"],[60,60,70,70,62,64],[40,45,48,39,44,45],[-10,-9,-8,3,-3,-7],[0,1,-8,3,5,-1],["IAH","IAH","IAH","IAH","IAH","IAH"],["DFW","DFW","DFW","DFW","DFW","DFW"],[224,224,224,224,224,224],[7,6,5,9,9,6],[13,9,17,22,9,13],[0,0,0,0,0,0],["","","","","",""],[0,0,0,0,0,0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> </th>\n      <th>Year</th>\n      <th>Month</th>\n      <th>DayofMonth</th>\n      <th>DayOfWeek</th>\n      <th>DepTime</th>\n      <th>ArrTime</th>\n      <th>UniqueCarrier</th>\n      <th>FlightNum</th>\n      <th>TailNum</th>\n      <th>ActualElapsedTime</th>\n      <th>AirTime</th>\n      <th>ArrDelay</th>\n      <th>DepDelay</th>\n      <th>Origin</th>\n      <th>Dest</th>\n      <th>Distance</th>\n      <th>TaxiIn</th>\n      <th>TaxiOut</th>\n      <th>Cancelled</th>\n      <th>CancellationCode</th>\n      <th>Diverted</th>\n    </tr>\n  </thead>\n</table>","options":{"pageLength":5,"language":{"search":"Search:"},"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6,8,10,11,12,13,16,17,18,19,21]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]},"callback":null,"filter":"none"},"evals":[]}</script></p>
 <pre class="r"><code>#will only print columns that can be fitted on the screen
 head(flights, n = 3)</code></pre>
 <pre><code>## Source: local data frame [3 x 21]
@@ -1215,6 +1217,9 @@ flights %&gt;% sample_frac(size = 0.25, replace=TRUE)</code></pre>
 <li>full_join</li>
 <li>semi_join</li>
 <li>anti_join</li>
+<li>Mutating joins</li>
+<li>Filtering joins</li>
+<li>Set operations</li>
 </ul>
 <pre class="r"><code># create two simple data frames
 a &lt;- data_frame(color = c(&quot;green&quot;, &quot;yellow&quot;, &quot;red&quot;), 
@@ -1304,6 +1309,127 @@ a %&gt;% inner_join(b, by = c(&quot;color&quot; = &quot;col&quot;))</code></pre>
 ##    color num size
 ## 1  green   1    S
 ## 2 yellow   2    M</code></pre>
+<pre class="r"><code># Mutating Joins - Combine variables from multiple tables
+flights2 &lt;- nyflights %&gt;% select(year:day, hour, origin, dest, tailnum, carrier)
+flights2 %&gt;% head(2)</code></pre>
+<pre><code>## Source: local data frame [2 x 8]
+## 
+##   year month day hour origin dest tailnum carrier
+## 1 2013     1   1    5    EWR  IAH  N14228      UA
+## 2 2013     1   1    5    LGA  IAH  N24211      UA</code></pre>
+<pre class="r"><code>airlines %&gt;% head(2)</code></pre>
+<pre><code>## Source: local data frame [2 x 2]
+## 
+##   carrier                   name
+## 1      9E      Endeavor Air Inc.
+## 2      AA American Airlines Inc.</code></pre>
+<pre class="r"><code># left join by carrier
+flights2 %&gt;% left_join(airlines) %&gt;% head(5)</code></pre>
+<pre><code>## Source: local data frame [5 x 9]
+## 
+##   year month day hour origin dest tailnum carrier                   name
+## 1 2013     1   1    5    EWR  IAH  N14228      UA  United Air Lines Inc.
+## 2 2013     1   1    5    LGA  IAH  N24211      UA  United Air Lines Inc.
+## 3 2013     1   1    5    JFK  MIA  N619AA      AA American Airlines Inc.
+## 4 2013     1   1    5    JFK  BQN  N804JB      B6        JetBlue Airways
+## 5 2013     1   1    5    LGA  ATL  N668DN      DL   Delta Air Lines Inc.</code></pre>
+<pre class="r"><code># controlling how the tables are matched
+weather %&gt;% head(3)</code></pre>
+<pre><code>## Source: local data frame [3 x 14]
+## Groups: month, day, hour
+## 
+##   origin year month day hour  temp  dewp humid wind_dir wind_speed
+## 1    EWR 2013     1   1    0 37.04 21.92 53.97      230   10.35702
+## 2    EWR 2013     1   1    1 37.04 21.92 53.97      230   13.80936
+## 3    EWR 2013     1   1    2 37.94 21.92 52.09      230   12.65858
+## Variables not shown: wind_gust (dbl), precip (dbl), pressure (dbl), visib
+##   (dbl)</code></pre>
+<pre class="r"><code># by default dplyr will use all common variables (a natural join)
+flights2 %&gt;% left_join(weather) %&gt;% head(3)</code></pre>
+<pre><code>## Source: local data frame [3 x 17]
+## 
+##   year month day hour origin dest tailnum carrier temp dewp humid wind_dir
+## 1 2013     1   1    5    EWR  IAH  N14228      UA   NA   NA    NA       NA
+## 2 2013     1   1    5    LGA  IAH  N24211      UA   NA   NA    NA       NA
+## 3 2013     1   1    5    JFK  MIA  N619AA      AA   NA   NA    NA       NA
+## Variables not shown: wind_speed (dbl), wind_gust (dbl), precip (dbl),
+##   pressure (dbl), visib (dbl)</code></pre>
+<pre class="r"><code># by a specified char vector (list of cols)
+# note that the year columns are disambiguated with a suffix
+flights2 %&gt;%  left_join(planes, by =  &quot;tailnum&quot;) %&gt;% head(3)</code></pre>
+<pre><code>## Source: local data frame [3 x 16]
+## 
+##   year.x month day hour origin dest tailnum carrier year.y
+## 1   2013     1   1    5    EWR  IAH  N14228      UA   1999
+## 2   2013     1   1    5    LGA  IAH  N24211      UA   1998
+## 3   2013     1   1    5    JFK  MIA  N619AA      AA   1990
+## Variables not shown: type (chr), manufacturer (chr), model (chr), engines
+##   (int), seats (int), speed (int), engine (chr)</code></pre>
+<pre class="r"><code># a named char vector
+airports %&gt;% head(2)</code></pre>
+<pre><code>## Source: local data frame [2 x 7]
+## 
+##   faa                          name      lat       lon  alt tz dst
+## 1 04G             Lansdowne Airport 41.13047 -80.61958 1044 -5   A
+## 2 06A Moton Field Municipal Airport 32.46057 -85.68003  264 -5   A</code></pre>
+<pre class="r"><code>flights2 %&gt;% left_join(airports, by = c(&quot;dest&quot; = &quot;faa&quot;)) %&gt;% head(3)</code></pre>
+<pre><code>## Source: local data frame [3 x 14]
+## 
+##   year month day hour origin dest tailnum carrier
+## 1 2013     1   1    5    EWR  IAH  N14228      UA
+## 2 2013     1   1    5    LGA  IAH  N24211      UA
+## 3 2013     1   1    5    JFK  MIA  N619AA      AA
+## Variables not shown: name (chr), lat (dbl), lon (dbl), alt (int), tz
+##   (dbl), dst (chr)</code></pre>
+<pre class="r"><code>flights2 %&gt;% left_join(airports, by = c(&quot;origin&quot; = &quot;faa&quot;)) %&gt;% head(3)</code></pre>
+<pre><code>## Source: local data frame [3 x 14]
+## 
+##   year month day hour origin dest tailnum carrier                name
+## 1 2013     1   1    5    EWR  IAH  N14228      UA Newark Liberty Intl
+## 2 2013     1   1    5    LGA  IAH  N24211      UA          La Guardia
+## 3 2013     1   1    5    JFK  MIA  N619AA      AA John F Kennedy Intl
+## Variables not shown: lat (dbl), lon (dbl), alt (int), tz (dbl), dst (chr)</code></pre>
+<pre class="r"><code># set operations
+# `intersect(x, y)`: return only observations in both x and y
+df1 &lt;- data_frame(x = 1:2, y = c(1L, 1L))
+df1</code></pre>
+<pre><code>## Source: local data frame [2 x 2]
+## 
+##   x y
+## 1 1 1
+## 2 2 1</code></pre>
+<pre class="r"><code>df2 &lt;- data_frame(x = 1:2, y = 1:2)
+df2</code></pre>
+<pre><code>## Source: local data frame [2 x 2]
+## 
+##   x y
+## 1 1 1
+## 2 2 2</code></pre>
+<pre class="r"><code># Intersection
+intersect(df1, df2)</code></pre>
+<pre><code>## Source: local data frame [1 x 2]
+## 
+##   x y
+## 1 1 1</code></pre>
+<pre class="r"><code># Union
+union(df1, df2)</code></pre>
+<pre><code>## Source: local data frame [3 x 2]
+## 
+##   x y
+## 1 2 2
+## 2 2 1
+## 3 1 1</code></pre>
+<pre class="r"><code># set difference - records in df1 but not in df2
+setdiff(df1, df2)</code></pre>
+<pre><code>## Source: local data frame [1 x 2]
+## 
+##   x y
+## 1 2 1</code></pre>
+<pre class="r"><code>setdiff(df2, df1)</code></pre>
+<pre><code>## Source: local data frame [1 x 2]
+## 
+##   x y
+## 1 2 2</code></pre>
 </div>
 <div id="connecting-to-databases" class="section level1">
 <h1>Connecting to Databases</h1>
@@ -1312,7 +1438,8 @@ a %&gt;% inner_join(b, by = c(&quot;color&quot; = &quot;col&quot;))</code></pre>
 <li>Use the same syntax for local data frames and databases</li>
 <li>Only generates SELECT statements</li>
 <li>Currently supports SQLite, PostgreSQL/Redshift, MySQL/MariaDB, BigQuery, MonetDB</li>
-<li>Example below is based upon an SQLite database containing the hflights data <a href="http://www3.nd.edu/~steve/computing_with_data/24_dplyr/dplyr.html" class="uri">http://www3.nd.edu/~steve/computing_with_data/24_dplyr/dplyr.html</a></li>
+<li>Example below is based upon an SQLite database containing the hflights data</li>
+<li>ref: <a href="http://www3.nd.edu/~steve/computing_with_data/24_dplyr/dplyr.html" class="uri">http://www3.nd.edu/~steve/computing_with_data/24_dplyr/dplyr.html</a></li>
 </ul>
 <pre class="r"><code>#setup a new sqlite connection. Its just a connection with no data
 my_db &lt;- src_sqlite(path = &quot;my_db.sqlite3&quot;, create = TRUE)

@@ -16,3 +16,12 @@ setup_slack <- function(user_name = "rStudio",
   
 }
 
+
+#frequency distribution. Equivalent of proc freq in SAS. 
+#returns a dataframe
+freq_dist = function(...) {
+  group_by(...) %>%
+    summarise(n=n()) %>%
+    mutate(perc=paste0(round(100 * n/sum(n), 1), "%")) %>%
+    arrange(desc(n))
+}

@@ -22,6 +22,7 @@ color.axis.title = palette[5]
 color.title = palette[7]
 
 
+
 #set default theme as minimal(charts will adhere to this in case the custom theme function is not called)
 theme_set(theme_minimal(chart.theme.size)) #minimal theme as default
 
@@ -32,7 +33,8 @@ chart_theme_custom_base <- function(fsize = chart.theme.size,
                                     vgrid = 1, 
                                     hgrid = 1, 
                                     mvgrid=0, 
-                                    mhgrid=0) {
+                                    mhgrid=0,
+                                    font_family = "") {
   #size attributes - font, gridline etc.
   gridline.size = .1
   
@@ -57,7 +59,7 @@ chart_theme_custom_base <- function(fsize = chart.theme.size,
   update_geom_defaults(geom = "histogram", list(fill = color_primary_pal[1], colour = "transparent", size = 0.25))
   
   #start construction of the custom theme
-  theme_minimal(chart.theme.size) +
+  theme_minimal(chart.theme.size, base_family = font_family) +
   theme(
     
     #format the background and panel
@@ -94,11 +96,11 @@ chart_theme_custom_base <- function(fsize = chart.theme.size,
     #theme(axis.ticks = element_line(colour = color.grid.major)) +
     axis.ticks = element_blank(),
     
-    axis.title.x=element_text(size=fsize,color=color.axis.title, vjust=0, face = "plain"),
-    axis.title.y=element_text(size=fsize,color=color.axis.title, vjust=1.25, face = "plain"),
+    axis.title.x=element_text(size=fsize,color=color.axis.title, vjust=0, family=font_family, face = "plain"),
+    axis.title.y=element_text(size=fsize,color=color.axis.title, vjust=1.25, family=font_family, face = "plain"),
     
     axis.text.x=element_text(size=fsize*0.8,color=color.axis.text),
-    axis.text.y=element_text(size=fsize*0.8,color=color.axis.text),
+    axis.text.y=element_text(size=fsize*0.8,color=color.axis.text, vjust = 0.5),
       
       
     #Plot margins
@@ -153,11 +155,13 @@ chart_watermark <- function(text = "sumitbajaj.me", size = 3, color = "gray", al
 #show legend, select position, show title (1/0)
 legend_show <- function(position = "top",
                         show_title = 1,
-                        size=chart.theme.size*0.8
+                        size_title_font = chart.theme.size*0.8,
+                        size_label_font = chart.theme.size*0.8
                        ){
   theme(legend.position= position, 
         legend.title = if(show_title == 0){element_blank()}
-                                      else{element_text(colour=color.axis.title, size=chart.theme.size*0.8, face="bold")})
+                                      else{element_text(colour=color.axis.title, size=size_title_font, face="bold")},
+        legend.text = element_text(size = size_label_font))
 
 }
 
@@ -190,7 +194,7 @@ chart_theme_custom_minimal <- function(fsize = chart.theme.size,
         axis.title.x=element_text(size=fsize,color=color.axis.title, vjust=0),
         axis.title.y=element_text(size=fsize,color=color.axis.title, vjust=1.25),
         axis.text.x=element_text(size=fsize,color = text.x.color),
-        axis.text.y=element_text(size=fsize,color = text.y.color))
+        axis.text.y=element_text(size=fsize,color = text.y.color, vjust = 1))
 }
 
 #function to scale text size for geom_text
@@ -201,7 +205,7 @@ text_size_scale <- function(font_size = chart.theme.size){
 
 
 #Display all color palettes
-#display.brewer.all()
+#display.brewer.all() #RdYIGn
 # View 5 colors for the Set2 palette
 #display.brewer.pal(3,"Paired")
 #http://vis.stanford.edu/color-names/analyzer/
