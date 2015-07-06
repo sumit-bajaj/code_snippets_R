@@ -7,6 +7,7 @@
 
 #list of required packages
 packages = list("scales", 
+                "devtools",
                 "lubridate",
                 "stringr",
                 "gridExtra",

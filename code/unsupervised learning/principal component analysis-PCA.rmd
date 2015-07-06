@@ -1,0 +1,139 @@
+---
+title: "Principal Component Analysis (PCA)"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 9
+    dpi: 144
+    theme: cerulean
+    toc: yes
+    
+---
+
+
+
+```{r global_options, include=FALSE}
+
+#http://kbroman.org/knitr_knutshell/pages/Rmarkdown.html
+knitr::opts_chunk$set(fig.width=9, 
+                      fig.height=7, 
+                      fig.path='Figs/',
+                      echo=TRUE, 
+                      warning=FALSE, 
+                      message=FALSE,
+                      include = TRUE, #show figures, FALSE will evaluate code but suppress results
+                      #fig.show="hide", #if you want to hide figures
+                      results = "show"
+                      )
+
+knitr::opts_chunk$set(cache=TRUE)
+
+```
+
+
+
+#Setup
+Set up packages, chart themes, slack notifications etc
+```{r Set up packages and environment, include=FALSE, cache=FALSE}
+
+#load packages
+source("../../r_config/r_packages_setupv1.R") 
+
+#load custom functions
+source("../../r_config/r_functions_repository.R")
+
+#load custom ggplot2 theme functions
+source("../../r_config/r_visualization_setupv1.R")
+
+#set default theme for charts
+theme_set(chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1)) 
+
+#data table global options
+options(DT.options = list(pageLength = 5, language = list(search = 'Search:')))
+#datatable(head(iris))
+
+#setup slack bot for notifications
+setup_slack(token_path = "../../../api_tokens/api_tokens - list.csv", channel_name = "#code_status")
+
+#post a test message
+slackr("Everything setup!")
+
+```
+
+
+#Load packages and setup dataframes
+```{r cohort data - by week, cache=FALSE}
+
+library(ISLR)
+library(MASS)
+
+arrests <- tbl_df(USArrests)
+arrests <- arrests %>% mutate(state = row.names(USArrests))
+arrests
+glimpse(arrests)
+
+```
+
+# Principal Component Analysis on USArrests dataset
+```{r PCA on USArrests}
+
+library(dplyr)
+# http://stackoverflow.com/questions/24202120/dplyrselect-function-clashes-with-massselect
+select <- dplyr::select
+
+
+arrests.pca = prcomp(arrests%>%select(-state), scale=TRUE, center = TRUE)
+arrests.pca
+
+
+plot(arrests.pca, type = "l")
+
+
+library(ggbiplot)
+
+states <- arrests %>% pull(state)
+
+col <- vector()
+for (i in 1:50 ){col[i] = "grey"}
+
+ggbiplot(arrests.pca, obs.scale = 1, var.scale = 1, labels = states, labels.size = 3.5, varname.size = 5, alpha = 0.5, 
+         groups = states, color = "black") + scale_color_manual(values = col) +
+  ylim(limits = c(-3, 3)) + chart_theme_custom_base(mvgrid = 1, mhgrid = 1)
+  
+
+```
+
+#Code from ISLR book
+```{r ISLR example}
+
+states=row.names(USArrests)
+states
+names(USArrests)
+apply(USArrests, 2, mean)
+apply(USArrests, 2, var)
+pr.out=prcomp(USArrests, scale=TRUE)
+names(pr.out)
+pr.out$center
+pr.out$scale
+pr.out$rotation
+dim(pr.out$x)
+biplot(pr.out, scale=0)
+pr.out$rotation=-pr.out$rotation
+pr.out$x=-pr.out$x
+biplot(pr.out, scale=0)
+pr.out$sdev
+pr.var=pr.out$sdev^2
+pr.var
+pve=pr.var/sum(pr.var)
+pve
+plot(pve, xlab="Principal Component", ylab="Proportion of Variance Explained", ylim=c(0,1),type='b')
+plot(cumsum(pve), xlab="Principal Component", ylab="Cumulative Proportion of Variance Explained", ylim=c(0,1),type='b')
+a=c(1,2,8,-3)
+cumsum(a)
+
+```
+
+#Useful links
+* https://tgmstat.wordpress.com/2013/11/28/computing-and-visualizing-pca-in-r/
+
+

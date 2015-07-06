@@ -1,0 +1,236 @@
+---
+title: "K-Means Clustering"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 9
+    dpi: 144
+    theme: cerulean
+    toc: yes
+    
+---
+
+
+
+```{r global_options, include=FALSE}
+
+#http://kbroman.org/knitr_knutshell/pages/Rmarkdown.html
+knitr::opts_chunk$set(fig.width=9, 
+                      fig.height=7, 
+                      fig.path='Figs/',
+                      echo=TRUE, 
+                      warning=FALSE, 
+                      message=FALSE,
+                      include = TRUE, #show figures, FALSE will evaluate code but suppress results
+                      #fig.show="hide", #if you want to hide figures
+                      results = "show"
+                      )
+
+knitr::opts_chunk$set(cache=TRUE)
+
+```
+
+
+
+#Setup
+Set up packages, chart themes, slack notifications etc
+```{r Set up packages and environment, include=FALSE, cache=FALSE}
+
+#load packages
+source("../../r_config/r_packages_setupv1.R") 
+
+#load custom functions
+source("../../r_config/r_functions_repository.R")
+
+#load custom ggplot2 theme functions
+source("../../r_config/r_visualization_setupv1.R")
+
+#set default theme for charts
+theme_set(chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1)) 
+
+#data table global options
+options(DT.options = list(pageLength = 5, language = list(search = 'Search:')))
+#datatable(head(iris))
+
+#setup slack bot for notifications
+setup_slack(token_path = "../../../api_tokens/api_tokens - list.csv", channel_name = "#code_status")
+
+#post a test message
+slackr("Everything setup!")
+
+```
+
+#Clustering
+* Algorithms
+    * Hierarchical
+    * K-Means
+* Distance Meansures
+    * Euclidian - quantitative data. Not for binary/ categorical data
+    * Hamming - binary/categorical data. You can define distance as 0 if the two points are in same category and 1 otherwise (essentially count no. of mismatches). If categories are ordered, you can convert them to numerical sequence and apply Euclidian or other distances
+    * Manhattan (city block) - measures distance in the number of horizontal and vertical units it takes to get from one point to another (no diagonal moves). Also called L1 distance (and squared Euclidian distance is L2 distance).
+    * Cosine similarity - Commonly used in text analysis. It measures the smallest angle between two vectors (assumed to be between 0 and 90 degrees)
+
+##Hierarchical clustering
+* Finds nested groups of clusters
+    * e.g Plant Taxonomy, which classifies plants by family > genus > species >...
+
+We will use a small dataset from 1973 on protein consumption from 9 different food groups in 25 European countries. The goal is to group the countries based on the patterns in their protein consumption. 
+
+```{r hierarchical clustering}
+
+protein = read_tsv("../../data/protein.txt")
+head(protein)
+
+summary(protein)
+
+#use all columns except the first (country)
+vars.to.use <- colnames(protein)[-1]
+vars.to.use
+
+pmatrix <- scale(protein[, vars.to.use])
+
+# returns the mean values for all columns
+pcenter <- attr(pmatrix, which = "scaled:center")
+pcenter
+
+# returns the std deviations for all columns
+pscale <- attr(pmatrix, which = "scaled:scale")
+pscale
+
+# create the distance matrix
+d <- dist(pmatrix, method = "euclidian")
+
+# do the clustering
+pfit <- hclust(d, method = "ward.D")
+
+# plot the dendogram
+plot(pfit, labels = protein$Country, cex = 0.75, xlab = "clusters", ylab = "", 
+     axes = FALSE, main = "Hierarchical Clusters")
+
+# add the rectangles
+rect.hclust(pfit, k = 5, border = "red")
+
+# extract the clusters
+groups <- cutree(pfit, k=5)
+
+# shows the cluster that each country belongs to from the protein dataset
+groups
+
+# function to print out the countries in each cluster along with the values for fish, red meat consumption etc
+print_clusters <- function(labels, k){
+  for(i in 1:k){
+    print(paste("cluster", i))
+    print(protein[labels == i, c("Country", "RedMeat", "Fish", "Fr&Veg")])
+  }
+}
+
+# print clusters
+print_clusters(groups, 1)
+
+# add the cluster grouping as a column to the protein dataframe
+protein_hclust <- cbind(protein,groups)
+
+# view the countries in cluster group 1
+protein_hclust %>% filter(groups == 1)
+
+```
+
+### Visualize the clusters on Principal Components
+
+```{r visualize on principal components}
+
+# calculate the principal components of the protein data
+princ <- prcomp(pmatrix)
+
+# set number of components to two. We only want the projection on the first two axes
+ncomp <- 2
+
+# we can project hte data on any two of the principal components, but the first two are the mostly likely to show useful info
+project <- predict(princ, newdata = pmatrix)[ , 1:ncomp]
+
+# create a dataframe with the transformed data, along with the cluster label and country label of each point
+project.plus <- cbind(as.data.frame(project),
+                      cluster = as.factor(groups),
+                      country = protein$Country)
+head(project.plus)
+
+# plot the clusters on the 1st and 2nd principal component
+project.plus %>%
+  ggplot( aes(x = PC1, y = PC2)) +
+  geom_point( aes(color = cluster)) + 
+  geom_text(aes(label = country, color = cluster), alpha = 0.8, size = 4,
+            hjust = -0.1, vjust = 0.5, show_guide = FALSE) + # # hide legend for this layer
+  scale_color_brewer(palette="Set1", name = "Cluster Group") +
+  xlim(c(-2, 2)) + legend_show() + legend_size(4)
+  
+
+```
+
+##K-Means 
+* Works best on data that looks like a mixture of Gaussians
+* Can be fairly unstable - final clusters depend on the initial clusters
+* Good practice to run k-means several times with different random starts and then select the clustering with the lowest WSS
+
+```{r k-means on protein data}
+
+kbest.p <- 5 # 5 clusters
+pclusters <- kmeans(pmatrix, kbest.p, nstart = 100, iter.max = 100)
+summary(pclusters)
+
+# centers is a matrix whose rows are the centroids
+# note that the pclusters$centers is in the scaled coordinates, not the original protein coordinates
+pclusters$centers
+
+pclusters$cluster
+
+```
+
+
+#Association Rules
+Associative rule mining is used to find objects or attributes that frequently occur together-for example, products that are often bought together during a shopping session, or queries that tend to occur together during a session on a website's search engine. 
+
+Such information can be used to - 
+* recommend products to shoppers
+* place frequently bundled items together on store shelves
+* redesign websites for easier navigation
+
+#Useful links
+* http://scikit-learn.org/stable/modules/clustering.html
+* http://cran.r-project.org/web/views/Cluster.html
+* http://cran.r-project.org/web/packages/dendextend/vignettes/
+* http://cran.r-project.org/web/packages/dendextend/vignettes/Cluster_Analysis.html
+* http://www.r-statistics.com/2014/07/the-dendextend-package-for-visualizing-and-comparing-trees-of-hierarchical-clusterings-slides-from-user2014/
+* https://pafnuty.wordpress.com/2013/02/04/interpretation-of-silhouette-plots-clustering/
+* https://pafnuty.wordpress.com/2013/08/14/non-convex-sets-with-k-means-and-hierarchical-clustering/
+* http://rstudio-pubs-static.s3.amazonaws.com/2598_ccd642fc32854463844c6f9cc153983a.html
+* http://cran.r-project.org/web/packages/broom/vignettes/kmeans.html
+* https://adventuresinr.wordpress.com/2010/10/22/displaying-k-means-results/
+
+
+
+#Test area
+```{r scrap}
+
+d1 <- ymd_hms("2014-06-01 13:35:52")
+d1
+d2 <- ymd_hms("2014-06-03 13:35:52")
+d2
+d1 - d2
+
+ratio <- .51
+sprintf("%1.0f%%", 100*ratio)
+
+col_pal = brewer.pal(3, "Set2")
+
+#display.brewer.all() #RdYIGn
+# View 5 colors for the Set2 palette
+display.brewer.pal(7,"RdYlGn")
+col_pal = brewer.pal(7, "RdYlGn")
+col_pal[1]
+
+display.brewer.pal(9,"Blues")
+blues = brewer.pal(9, "Blues")
+col_pal[1]
+
+```
+

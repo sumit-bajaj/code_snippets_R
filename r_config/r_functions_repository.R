@@ -25,3 +25,6 @@ freq_dist = function(...) {
     mutate(perc=paste0(round(100 * n/sum(n), 1), "%")) %>%
     arrange(desc(n))
 }
+
+#pull out a column from a dataframe
+pull <- function(x,y) {x[,if(is.name(substitute(y))) deparse(substitute(y)) else y, drop = FALSE][[1]]}
