@@ -169,12 +169,14 @@ datatable(cohort_visual_df)
 cohort_df %>%
   filter(period_age >= 0) %>%
 ggplot(aes(x = period_age, y = retention)) +
-  geom_line(alpha = 0.5, size = 0.5, aes(group = cohort)) +
+  geom_line(alpha = 0.5, size = 0.75, aes(group = cohort, color = as.character(cohort))) +
+  scale_color_manual(values = tableau_color_pal("tableau20")(20)) +
   scale_y_continuous(labels = percent, limits = c(0,1)) +
   scale_x_discrete() +
   labs(x="Weeks after signup ", y = "Retention rate") +
-  chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1) +
-  legend_show()
+  chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1, mhgrid = 1) +
+  legend_show(position = "right") +
+  guides(color = guide_legend(title = "Week Starting"))
 
 ```
 
@@ -196,9 +198,11 @@ ggplot(aes(x = period_age, y = cohort  )) +
   scale_y_datetime(breaks = date_breaks("1 week"), labels = date_format("%b - %d")) +
   expand_limits(x = -1) + #to accomodate the week0 text labels
   scale_x_discrete(limits = seq(1, 17, 1)) +
-  labs(x="Retention rate by weeks after signup ", y = "Signup week") +
+  labs(x="Retention rate by weeks after signup\n ", y = "Signup week") +
   chart_theme_custom_base(fsize = 14, vgrid = 0, hgrid = 0, font_family = "") +
-  theme(axis.text.y=element_text(vjust = 1))
+  theme(axis.text.y=element_text(vjust = 1)) +
+  legend_show(size_label_font = 10, position = "bottom") +
+  guides(fill = guide_colorbar( barwidth = 10, barheight = 0.5, title.vjust = 1, title = "Retention Rate" ))
 
 ```
 
@@ -357,16 +361,13 @@ datatable(cohort_visual_df)
 cohort_df %>%
   filter(period_age >= 0) %>%
 ggplot(aes(x = period_age, y = retention)) +
-  geom_line(alpha = 0.8, size = 0.5, aes(group = cohort, color = cohort)) +
-  
-  #scale_color_manual(values = tableau_color_pal("tableau20")(20)) +
-  
+  geom_line(alpha = 0.8, size = 0.5, aes(group = cohort, colour = cohort)) +
   scale_y_continuous(labels = percent, limits = c(0,1)) +
   scale_x_discrete() +
   labs(x="Weeks after signup ", y = "Retention rate") +
   chart_theme_custom_base(fsize = 14, background_grey = 0, vgrid = 1, hgrid = 1, mhgrid = 1) +
   legend_show(position = "right", show_title = 0) +
-  legend_size(symbol_size = 1)
+  legend_size(symbol_size = 1) 
 
 ```
 
@@ -447,7 +448,8 @@ ggplot(aes(x = week, y = tally,  fill = cohort, group = cohort)) +
   chart_theme_custom_base(mhgrid = 1, mvgrid = 1) +
   legend_show(position = "right", show_title = 0, size_label_font = 10) +
   scale_x_datetime() +
-  scale_fill_manual(values = blues(19), guide = guide_legend(reverse = TRUE)) +
+  scale_fill_manual(values = blues(19)) +
+  guides(fill =  guide_legend(reverse = TRUE)) +
   labs(x="Weeks", y = "Number of users active in a week") 
 
 ```

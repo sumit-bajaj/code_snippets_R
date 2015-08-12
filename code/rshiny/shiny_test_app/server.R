@@ -7,6 +7,10 @@
 
 library(shiny)
 
+# any code here will be called only once when the runApp() is called
+
+
+#
 shinyServer(
 
 # start function  

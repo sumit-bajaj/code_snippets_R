@@ -10,20 +10,26 @@ library(shiny)
 shinyUI(fluidPage(
 
   # Application title
-  titlePanel("Old Faithful Geyser Data"),
+  titlePanel("Trip Cost Calculator"),
 
   # Sidebar with a slider input for number of bins
   sidebarLayout(
     sidebarPanel(
       sliderInput("bins",
-                  "Number of bins:",
+                  "Choose Car 1:",
                   min = 1,
                   max = 50,
-                  value = 30)
+                  value = 30),
+      
+      sliderInput("max",
+                  "Maximum Number of Words:",
+                  min = 1,  max = 300,  value = 100)
+      
     ),
 
     # Show a plot of the generated distribution
     mainPanel(
+      h3('Main Panel text'),
       plotOutput("distPlot")
     )
   )
